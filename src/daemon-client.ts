@@ -12,6 +12,7 @@ import {
   getConfigHash,
   getSocketDir,
   getSocketPath,
+  getTimeoutMs,
 } from './config.js';
 import {
   type DaemonRequest,
@@ -54,9 +55,18 @@ function generateRequestId(): string {
 async function sendRequest(
   socketPath: string,
   request: DaemonRequest,
+  timeoutMs = 5000,
 ): Promise<DaemonResponse> {
   return new Promise((resolve, reject) => {
-    const socket = Bun.connect({
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const clearTimeoutIfNeeded = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+    };
+
+    const socketPromise = Bun.connect({
       unix: socketPath,
       socket: {
         open(socket) {
@@ -64,30 +74,35 @@ async function sendRequest(
         },
         data(socket, data) {
           try {
+            clearTimeoutIfNeeded();
             const response = JSON.parse(data.toString().trim());
             socket.end();
             resolve(response);
           } catch (err) {
+            clearTimeoutIfNeeded();
             socket.end();
             reject(new Error('Invalid response from daemon'));
           }
         },
         error(socket, error) {
+          clearTimeoutIfNeeded();
           reject(error);
         },
         close() {
           // Connection closed
         },
         connectError(socket, error) {
+          clearTimeoutIfNeeded();
           reject(error);
         },
       },
     });
 
-    // Timeout after 5 seconds (fast fallback to direct connection)
-    setTimeout(() => {
+    // Timeout after a configurable period.
+    timeoutId = setTimeout(() => {
+      void socketPromise.then((socket) => socket.end()).catch(() => undefined);
       reject(new Error('Daemon request timeout'));
-    }, 5000);
+    }, timeoutMs);
   });
 }
 
@@ -270,10 +285,14 @@ export async function getDaemonConnection(
     serverName,
 
     async listTools(): Promise<unknown> {
-      const response = await sendRequest(socketPath, {
-        id: generateRequestId(),
-        type: 'listTools',
-      });
+      const response = await sendRequest(
+        socketPath,
+        {
+          id: generateRequestId(),
+          type: 'listTools',
+        },
+        getTimeoutMs(),
+      );
 
       if (!response.success) {
         throw new Error(response.error?.message ?? 'listTools failed');
@@ -286,12 +305,16 @@ export async function getDaemonConnection(
       toolName: string,
       args: Record<string, unknown>,
     ): Promise<unknown> {
-      const response = await sendRequest(socketPath, {
-        id: generateRequestId(),
-        type: 'callTool',
-        toolName,
-        args,
-      });
+      const response = await sendRequest(
+        socketPath,
+        {
+          id: generateRequestId(),
+          type: 'callTool',
+          toolName,
+          args,
+        },
+        getTimeoutMs(),
+      );
 
       if (!response.success) {
         throw new Error(response.error?.message ?? 'callTool failed');
@@ -301,10 +324,14 @@ export async function getDaemonConnection(
     },
 
     async getInstructions(): Promise<string | undefined> {
-      const response = await sendRequest(socketPath, {
-        id: generateRequestId(),
-        type: 'getInstructions',
-      });
+      const response = await sendRequest(
+        socketPath,
+        {
+          id: generateRequestId(),
+          type: 'getInstructions',
+        },
+        getTimeoutMs(),
+      );
 
       if (!response.success) {
         throw new Error(response.error?.message ?? 'getInstructions failed');

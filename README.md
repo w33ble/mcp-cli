@@ -469,7 +469,7 @@ By default, the CLI uses **lazy-spawn connection pooling** to avoid repeated MCP
 - **Automatic**: No manual start/stop needed
 - **Per-server**: Each MCP server gets its own daemon
 - **Stale detection**: Config changes trigger re-spawn
-- **Fast fallback**: 5s spawn timeout, then direct connection
+- **Fast fallback**: 5s spawn timeout, then direct connection; daemon IPC calls use `MCP_TIMEOUT`
 
 **Control via environment:**
 ```bash
