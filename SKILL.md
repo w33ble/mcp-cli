@@ -17,6 +17,9 @@ Access MCP servers through the command line. MCP enables interaction with extern
 | `mcp-cli grep "<pattern>"` | Search tools by name |
 | `mcp-cli call <server> <tool>` | Call tool (reads JSON from stdin if no args) |
 | `mcp-cli call <server> <tool> '<json>'` | Call tool with arguments |
+| `mcp-cli auth login <server>` | Start OAuth login for an HTTP server |
+| `mcp-cli auth status <server>` | Check stored OAuth credentials |
+| `mcp-cli auth logout <server>` | Remove stored OAuth credentials |
 
 **Both formats work:** `<server> <tool>` or `<server>/<tool>`
 
@@ -25,7 +28,34 @@ Access MCP servers through the command line. MCP enables interaction with extern
 1. **Discover**: `mcp-cli` → see available servers
 2. **Explore**: `mcp-cli info <server>` → see tools with parameters
 3. **Inspect**: `mcp-cli info <server> <tool>` → get full JSON schema
-4. **Execute**: `mcp-cli call <server> <tool> '<json>'` → run with arguments
+4. **Authenticate when required**: `mcp-cli auth login <server>` → print the URL and ask the user to open it
+5. **Execute**: `mcp-cli call <server> <tool> '<json>'` → run with arguments
+
+### OAuth authentication
+
+OAuth is supported for Streamable HTTP servers configured with a `url`. Stdio
+and npx-based servers are expected to handle their own authentication.
+
+When a command reports that authentication is required:
+
+1. Run `mcp-cli auth login <server>` using the same `-c <path>` option, if one was used for the original command.
+2. Capture the authorization URL printed to stderr.
+3. Show the complete URL to the user and ask them to open it and authenticate.
+4. Keep the login process running while the user completes authentication; it is waiting for the loopback callback.
+5. Only report success after the command exits successfully.
+6. Retry the original command after login completes.
+
+Do not open the URL silently or claim authentication succeeded merely because a
+URL was printed. The callback uses a temporary available loopback port, so the
+URL must be used as printed and should not be edited.
+
+Example:
+
+```bash
+mcp-cli -c ~/.config/mcp/mcp_servers.json auth login notion
+# Show the printed authorization URL to the user and wait for completion.
+mcp-cli -c ~/.config/mcp/mcp_servers.json auth status notion
+```
 
 ## Examples
 
@@ -91,6 +121,16 @@ mcp-cli call github get_file_contents '{"owner": "x", "repo": "y", "path": "z"}'
 |------|---------|
 | `-d` | Include descriptions |
 | `-c <path>` | Specify config file |
+| `--version` | Show the CLI version |
+
+The config search order is:
+
+1. `-c/--config` or `MCP_CONFIG_PATH`
+2. `./mcp_servers.json`
+3. `~/.mcp_servers.json`
+4. `~/.config/mcp/mcp_servers.json`
+
+An existing local `./mcp_servers.json` takes precedence over the home config.
 
 ## Common Errors
 
@@ -101,6 +141,7 @@ mcp-cli call github get_file_contents '{"owner": "x", "repo": "y", "path": "z"}'
 | `mcp-cli list` | UNKNOWN_SUBCOMMAND | Use `info` instead of `list` |
 | `mcp-cli call server` | MISSING_ARGUMENT | Add tool name |
 | `mcp-cli call server tool {bad}` | INVALID_JSON | Use valid JSON with quotes |
+| `mcp-cli info server` (HTTP) | AUTH_ERROR | Run `mcp-cli auth login server` and show the URL to the user |
 
 ## Exit Codes
 
@@ -108,3 +149,4 @@ mcp-cli call github get_file_contents '{"owner": "x", "repo": "y", "path": "z"}'
 - `1`: Client error (bad args, missing config)
 - `2`: Server error (tool failed)
 - `3`: Network error
+- `4`: Authentication error (run the OAuth login flow)
