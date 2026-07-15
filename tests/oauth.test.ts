@@ -99,6 +99,19 @@ describe('OAuth', () => {
     expect(error.message).toContain('mcp-cli auth login test');
   });
 
+  test('turns OAuth invalid_token responses into an auth error', () => {
+    const error = normalizeMissingOAuthCredentialsError(
+      new Error('{"error":"invalid_token","error_description":"Missing or invalid access token"}'),
+      'notion',
+      false,
+    );
+
+    expect((error as Error & { code?: ErrorCode }).code).toBe(
+      ErrorCode.AUTH_ERROR,
+    );
+    expect(error.message).toContain('mcp-cli auth login notion');
+  });
+
   test('preserves static authorization errors', () => {
     const error = new Error('Unauthorized');
     const normalized = normalizeMissingOAuthCredentialsError(

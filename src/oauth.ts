@@ -132,7 +132,7 @@ function isAuthRequiredError(error: unknown): boolean {
     error.name === 'UnauthorizedError' ||
     status.status === 401 ||
     status.statusCode === 401 ||
-    /\b(401|unauthorized|authentication required|auth required)\b/i.test(
+    /\b(401|unauthorized|authentication required|auth required|invalid_token)\b/i.test(
       error.message,
     )
   );
