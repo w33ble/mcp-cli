@@ -5,6 +5,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   type HttpServerConfig,
@@ -25,6 +26,10 @@ import {
   cleanupOrphanedDaemons,
   getDaemonConnection,
 } from './daemon-client.js';
+import {
+  createNonInteractiveOAuthProvider,
+  normalizeMissingOAuthCredentialsError,
+} from './oauth.js';
 import { VERSION } from './version.js';
 
 // Re-export config utilities for convenience
@@ -221,6 +226,7 @@ export async function safeClose(close: () => Promise<void>): Promise<void> {
 export async function connectToServer(
   serverName: string,
   config: ServerConfig,
+  configPath?: string,
 ): Promise<ConnectedClient> {
   // Collect stderr for better error messages
   const stderrChunks: string[] = [];
@@ -237,9 +243,20 @@ export async function connectToServer(
     );
 
     let transport: StdioClientTransport | StreamableHTTPClientTransport;
+    let hasOAuthClient = true;
+    let hasAuthorizationHeader = false;
 
     if (isHttpServer(config)) {
-      transport = createHttpTransport(config);
+      const httpTransport = await createHttpTransport(
+        serverName,
+        config,
+        configPath,
+      );
+      transport = httpTransport.transport;
+      hasOAuthClient = httpTransport.hasOAuthClient;
+      hasAuthorizationHeader = Object.keys(config.headers ?? {}).some(
+        (name) => name.toLowerCase() === 'authorization',
+      );
     } else {
       transport = createStdioTransport(config);
 
@@ -264,6 +281,14 @@ export async function connectToServer(
       if (stderrOutput) {
         const err = error as Error;
         err.message = `${err.message}\n\nServer stderr:\n${stderrOutput}`;
+      }
+      if (isHttpServer(config)) {
+        throw normalizeMissingOAuthCredentialsError(
+          error,
+          serverName,
+          hasOAuthClient,
+          hasAuthorizationHeader,
+        );
       }
       throw error;
     }
@@ -290,16 +315,60 @@ export async function connectToServer(
 /**
  * Create HTTP transport for remote servers
  */
-function createHttpTransport(
-  config: HttpServerConfig,
-): StreamableHTTPClientTransport {
-  const url = new URL(config.url);
+export function createConfiguredFetch(
+  resourceUrl: URL,
+  headers: Record<string, string> | undefined,
+): FetchLike {
+  return async (input, init) => {
+    let requestUrl = new URL(input);
+    for (let redirects = 0; redirects < 20; redirects++) {
+      const requestHeaders = new Headers(init?.headers);
+      if (
+        requestUrl.origin === resourceUrl.origin &&
+        requestUrl.pathname === resourceUrl.pathname
+      ) {
+        for (const [name, value] of Object.entries(headers ?? {})) {
+          if (!requestHeaders.has(name)) requestHeaders.set(name, value);
+        }
+      }
 
-  return new StreamableHTTPClientTransport(url, {
-    requestInit: {
-      headers: config.headers,
-    },
-  });
+      const response = await fetch(requestUrl, {
+        ...init,
+        headers: requestHeaders,
+        redirect: 'manual',
+      });
+      const location = response.headers.get('location');
+      if (response.status < 300 || response.status > 399 || !location) {
+        return response;
+      }
+      requestUrl = new URL(location, requestUrl);
+    }
+    throw new Error('Too many redirects');
+  };
+}
+
+async function createHttpTransport(
+  serverName: string,
+  config: HttpServerConfig,
+  configPath?: string,
+): Promise<{
+  transport: StreamableHTTPClientTransport;
+  hasOAuthClient: boolean;
+}> {
+  const url = new URL(config.url);
+  const authProvider = await createNonInteractiveOAuthProvider(
+    serverName,
+    config,
+    configPath,
+  );
+
+  return {
+    transport: new StreamableHTTPClientTransport(url, {
+      fetch: createConfiguredFetch(url, config.headers),
+      authProvider,
+    }),
+    hasOAuthClient: authProvider !== undefined,
+  };
 }
 
 /**
@@ -390,6 +459,7 @@ export async function callTool(
 export async function getConnection(
   serverName: string,
   config: ServerConfig,
+  configPath?: string,
 ): Promise<McpConnection> {
   // Clean up any orphaned daemons on first call
   await cleanupOrphanedDaemons();
@@ -397,7 +467,11 @@ export async function getConnection(
   // Try daemon connection if enabled
   if (isDaemonEnabled()) {
     try {
-      const daemonConn = await getDaemonConnection(serverName, config);
+      const daemonConn = await getDaemonConnection(
+        serverName,
+        config,
+        configPath,
+      );
       if (daemonConn) {
         debug(`Using daemon connection for ${serverName}`);
         return {
@@ -437,7 +511,11 @@ export async function getConnection(
 
   // Fall back to direct connection
   debug(`Using direct connection for ${serverName}`);
-  const { client, close } = await connectToServer(serverName, config);
+  const { client, close } = await connectToServer(
+    serverName,
+    config,
+    configPath,
+  );
 
   return {
     async listTools(): Promise<ToolInfo[]> {

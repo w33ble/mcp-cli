@@ -29,6 +29,7 @@ interface ServerWithTools {
   tools: ToolInfo[];
   instructions?: string;
   error?: string;
+  errorCode?: ErrorCode;
 }
 
 /**
@@ -70,7 +71,11 @@ async function fetchServerTools(
   let connection: McpConnection | null = null;
   try {
     const serverConfig = getServerConfig(config, serverName);
-    connection = await getConnection(serverName, serverConfig);
+    connection = await getConnection(
+      serverName,
+      serverConfig,
+      config.configPath,
+    );
 
     const tools = await connection.listTools();
     const instructions = await connection.getInstructions();
@@ -83,6 +88,7 @@ async function fetchServerTools(
       name: serverName,
       tools: [],
       error: errorMsg,
+      errorCode: (error as { code?: ErrorCode }).code,
     };
   } finally {
     if (connection) {
@@ -127,6 +133,14 @@ export async function listCommand(options: ListOptions): Promise<void> {
 
   // Sort by name to ensure consistent output order
   servers.sort((a, b) => a.name.localeCompare(b.name));
+
+  const authFailure = servers.find(
+    (server) => server.errorCode === ErrorCode.AUTH_ERROR,
+  );
+  if (authFailure?.error) {
+    console.error(authFailure.error);
+    process.exit(ErrorCode.AUTH_ERROR);
+  }
 
   // Convert errors to tool-like display for human output
   const displayServers = servers.map((s) => ({

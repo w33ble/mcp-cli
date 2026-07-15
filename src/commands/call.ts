@@ -148,8 +148,16 @@ export async function callCommand(options: CallOptions): Promise<void> {
   let connection: McpConnection;
 
   try {
-    connection = await getConnection(serverName, serverConfig);
+    connection = await getConnection(
+      serverName,
+      serverConfig,
+      config.configPath,
+    );
   } catch (error) {
+    if ((error as { code?: ErrorCode }).code === ErrorCode.AUTH_ERROR) {
+      console.error((error as Error).message);
+      process.exit(ErrorCode.AUTH_ERROR);
+    }
     console.error(
       formatCliError(
         serverConnectionError(serverName, (error as Error).message),
@@ -165,6 +173,10 @@ export async function callCommand(options: CallOptions): Promise<void> {
     // Uses formatToolResult which extracts text from MCP content array
     console.log(formatToolResult(result));
   } catch (error) {
+    if ((error as { code?: ErrorCode }).code === ErrorCode.AUTH_ERROR) {
+      console.error((error as Error).message);
+      process.exit(ErrorCode.AUTH_ERROR);
+    }
     // Try to get available tools for better error message
     let availableTools: string[] | undefined;
     try {

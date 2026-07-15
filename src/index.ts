@@ -11,6 +11,7 @@
  *   mcp-cli call <server> <tool> {}  Call tool with JSON args
  */
 
+import { authCommand } from './commands/auth.js';
 import { callCommand } from './commands/call.js';
 import { grepCommand } from './commands/grep.js';
 import { infoCommand } from './commands/info.js';
@@ -35,7 +36,8 @@ import {
 import { VERSION } from './version.js';
 
 interface ParsedArgs {
-  command: 'list' | 'info' | 'grep' | 'call' | 'help' | 'version';
+  command: 'list' | 'info' | 'grep' | 'call' | 'auth' | 'help' | 'version';
+  authAction?: 'login' | 'logout' | 'status';
   server?: string;
   tool?: string;
   pattern?: string;
@@ -47,7 +49,7 @@ interface ParsedArgs {
 /**
  * Known subcommands
  */
-const SUBCOMMANDS = ['info', 'grep', 'call'] as const;
+const SUBCOMMANDS = ['info', 'grep', 'call', 'auth'] as const;
 
 /**
  * Check if a string looks like a subcommand (not a server name)
@@ -284,6 +286,23 @@ function parseArgs(args: string[]): ParsedArgs {
     return result;
   }
 
+  if (firstArg === 'auth') {
+    const action = positional[1];
+    const server = positional[2];
+    if (
+      !['login', 'logout', 'status'].includes(action) ||
+      !server ||
+      positional.length !== 3
+    ) {
+      console.error('Usage: mcp-cli auth <login|logout|status> <server>');
+      process.exit(ErrorCode.CLIENT_ERROR);
+    }
+    result.command = 'auth';
+    result.authAction = action as 'login' | 'logout' | 'status';
+    result.server = server;
+    return result;
+  }
+
   // =========================================================================
   // Check for unknown subcommand (common aliases)
   // =========================================================================
@@ -355,6 +374,7 @@ Usage:
   mcp-cli [options] grep <pattern>               Search tools by glob pattern
   mcp-cli [options] call <server> <tool>         Call tool (reads JSON from stdin if no args)
   mcp-cli [options] call <server> <tool> <json>  Call tool with JSON arguments
+  mcp-cli [options] auth <login|logout|status> <server>
 
 Formats (both work):
   mcp-cli info server tool                       Space-separated
@@ -450,6 +470,12 @@ async function main(): Promise<void> {
         configPath: args.configPath,
       });
       break;
+
+    case 'auth':
+      if (args.authAction && args.server) {
+        await authCommand(args.authAction, args.server, args.configPath);
+      }
+      break;
   }
 }
 
@@ -470,5 +496,8 @@ main()
   .catch((error) => {
     // Error message already formatted by command handlers
     console.error(error.message);
-    setImmediate(() => process.exit(ErrorCode.CLIENT_ERROR));
+    const code = (error as { code?: unknown }).code;
+    setImmediate(() =>
+      process.exit(typeof code === 'number' ? code : ErrorCode.CLIENT_ERROR),
+    );
   });

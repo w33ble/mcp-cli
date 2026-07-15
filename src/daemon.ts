@@ -157,8 +157,10 @@ export function killProcess(pid: number): boolean {
 export async function runDaemon(
   serverName: string,
   config: ServerConfig,
+  namespace = serverName,
+  configPath?: string,
 ): Promise<void> {
-  const socketPath = getSocketPath(serverName);
+  const socketPath = getSocketPath(namespace);
   const configHash = getConfigHash(config);
   const timeoutMs = getDaemonTimeoutMs();
 
@@ -207,8 +209,8 @@ export async function runDaemon(
     }
 
     // Clean up files
-    removeSocketFile(serverName);
-    removePidFile(serverName);
+    removeSocketFile(namespace);
+    removePidFile(namespace);
 
     debug(`[daemon:${serverName}] Cleanup complete`);
   };
@@ -243,15 +245,15 @@ export async function runDaemon(
   }
 
   // Remove stale socket if exists
-  removeSocketFile(serverName);
+  removeSocketFile(namespace);
 
   // Write PID file
-  writePidFile(serverName, configHash);
+  writePidFile(namespace, configHash);
 
   // Connect to MCP server
   try {
     debug(`[daemon:${serverName}] Connecting to MCP server...`);
-    mcpClient = await connectToServer(serverName, config);
+    mcpClient = await connectToServer(serverName, config, configPath);
     debug(`[daemon:${serverName}] Connected to MCP server`);
   } catch (error) {
     console.error(
@@ -341,7 +343,12 @@ export async function runDaemon(
       return {
         id: request.id,
         success: false,
-        error: { code: 'EXECUTION_ERROR', message: err.message },
+        error: {
+          code: String(
+            (err as Error & { code?: unknown }).code ?? 'EXECUTION_ERROR',
+          ),
+          message: err.message,
+        },
       };
     }
   };
@@ -395,6 +402,8 @@ export async function runDaemon(
 if (process.argv[2] === '--daemon') {
   const serverName = process.argv[3];
   const configJson = process.argv[4];
+  const namespace = process.argv[5];
+  const configPath = process.argv[6];
 
   if (!serverName || !configJson) {
     console.error('Usage: daemon.ts --daemon <serverName> <configJson>');
@@ -409,7 +418,7 @@ if (process.argv[2] === '--daemon') {
     process.exit(1);
   }
 
-  runDaemon(serverName, config).catch((error) => {
+  runDaemon(serverName, config, namespace, configPath).catch((error) => {
     console.error('Daemon failed:', error);
     process.exit(1);
   });

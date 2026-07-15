@@ -10,6 +10,7 @@ import {
   type ServerConfig,
   debug,
   getConfigHash,
+  getCredentialIdentity,
   getSocketDir,
   getSocketPath,
   getTimeoutMs,
@@ -23,6 +24,18 @@ import {
   removePidFile,
   removeSocketFile,
 } from './daemon.js';
+
+export function daemonResponseError(error?: {
+  code: string;
+  message: string;
+}): Error {
+  const result = new Error(error?.message ?? 'Daemon request failed');
+  const code = Number(error?.code);
+  if (Number.isInteger(code)) {
+    (result as Error & { code: number }).code = code;
+  }
+  return result;
+}
 
 // ============================================================================
 // Daemon Connection
@@ -109,21 +122,21 @@ async function sendRequest(
 /**
  * Check if daemon is running and has matching config
  */
-function isDaemonValid(serverName: string, config: ServerConfig): boolean {
-  const socketPath = getSocketPath(serverName);
-  const pidInfo = readPidFile(serverName);
+function isDaemonValid(namespace: string, config: ServerConfig): boolean {
+  const socketPath = getSocketPath(namespace);
+  const pidInfo = readPidFile(namespace);
 
   // No PID file = no daemon
   if (!pidInfo) {
-    debug(`[daemon-client] No PID file for ${serverName}`);
+    debug(`[daemon-client] No PID file for ${namespace}`);
     return false;
   }
 
   // Check if process is actually running
   if (!isProcessRunning(pidInfo.pid)) {
     debug(`[daemon-client] Process ${pidInfo.pid} not running, cleaning up`);
-    removePidFile(serverName);
-    removeSocketFile(serverName);
+    removePidFile(namespace);
+    removeSocketFile(namespace);
     return false;
   }
 
@@ -131,19 +144,19 @@ function isDaemonValid(serverName: string, config: ServerConfig): boolean {
   const currentHash = getConfigHash(config);
   if (pidInfo.configHash !== currentHash) {
     debug(
-      `[daemon-client] Config hash mismatch for ${serverName}, killing old daemon`,
+      `[daemon-client] Config hash mismatch for ${namespace}, killing old daemon`,
     );
     killProcess(pidInfo.pid);
-    removePidFile(serverName);
-    removeSocketFile(serverName);
+    removePidFile(namespace);
+    removeSocketFile(namespace);
     return false;
   }
 
   // Check if socket exists
   if (!existsSync(socketPath)) {
-    debug(`[daemon-client] Socket missing for ${serverName}, cleaning up`);
+    debug(`[daemon-client] Socket missing for ${namespace}, cleaning up`);
     killProcess(pidInfo.pid);
-    removePidFile(serverName);
+    removePidFile(namespace);
     return false;
   }
 
@@ -156,6 +169,8 @@ function isDaemonValid(serverName: string, config: ServerConfig): boolean {
 async function spawnDaemon(
   serverName: string,
   config: ServerConfig,
+  namespace: string,
+  configPath?: string,
 ): Promise<boolean> {
   debug(`[daemon-client] Spawning daemon for ${serverName}`);
 
@@ -166,7 +181,16 @@ async function spawnDaemon(
 
   // Spawn detached process
   const proc = Bun.spawn({
-    cmd: ['bun', 'run', daemonScript, '--daemon', serverName, configJson],
+    cmd: [
+      'bun',
+      'run',
+      daemonScript,
+      '--daemon',
+      serverName,
+      configJson,
+      namespace,
+      configPath ?? '',
+    ],
     stdout: 'pipe',
     stderr: 'pipe',
     env: { ...process.env },
@@ -238,13 +262,27 @@ async function spawnDaemon(
 export async function getDaemonConnection(
   serverName: string,
   config: ServerConfig,
+  configPath?: string,
 ): Promise<DaemonConnection | null> {
-  const socketPath = getSocketPath(serverName);
+  const namespace =
+    'url' in config
+      ? getCredentialIdentity(
+          configPath ?? process.cwd(),
+          serverName,
+          config.url,
+        )
+      : `${serverName}-${getConfigHash(config)}`;
+  const socketPath = getSocketPath(namespace);
 
   // Check if valid daemon exists
-  if (!isDaemonValid(serverName, config)) {
+  if (!isDaemonValid(namespace, config)) {
     // Spawn new daemon
-    const spawned = await spawnDaemon(serverName, config);
+    const spawned = await spawnDaemon(
+      serverName,
+      config,
+      namespace,
+      configPath,
+    );
     if (!spawned) {
       debug(`[daemon-client] Failed to spawn daemon for ${serverName}`);
       return null;
@@ -295,7 +333,7 @@ export async function getDaemonConnection(
       );
 
       if (!response.success) {
-        throw new Error(response.error?.message ?? 'listTools failed');
+        throw daemonResponseError(response.error);
       }
 
       return response.data;
@@ -317,7 +355,7 @@ export async function getDaemonConnection(
       );
 
       if (!response.success) {
-        throw new Error(response.error?.message ?? 'callTool failed');
+        throw daemonResponseError(response.error);
       }
 
       return response.data;
@@ -334,7 +372,7 @@ export async function getDaemonConnection(
       );
 
       if (!response.success) {
-        throw new Error(response.error?.message ?? 'getInstructions failed');
+        throw daemonResponseError(response.error);
       }
 
       return response.data as string | undefined;
@@ -373,5 +411,25 @@ export async function cleanupOrphanedDaemons(): Promise<void> {
     }
   } catch {
     // Ignore errors during cleanup scan
+  }
+}
+
+export async function invalidateDaemon(namespace: string): Promise<void> {
+  const pidInfo = readPidFile(namespace);
+  if (!pidInfo) return;
+  killProcess(pidInfo.pid);
+  for (
+    let attempt = 0;
+    attempt < 50 && isProcessRunning(pidInfo.pid);
+    attempt++
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  if (isProcessRunning(pidInfo.pid)) return;
+
+  // Do not remove files that a replacement daemon created while we waited.
+  if (readPidFile(namespace)?.pid === pidInfo.pid) {
+    removePidFile(namespace);
+    removeSocketFile(namespace);
   }
 }

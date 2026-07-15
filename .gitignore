@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Agent progress
+.slim/deepwork/
+
 # Bun lockfile binary (use bun.lock instead)
 *.lockb
 

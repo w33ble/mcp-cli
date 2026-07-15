@@ -2,6 +2,7 @@
  * MCP-CLI Configuration Types and Loader
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -54,6 +55,7 @@ export type ServerConfig = StdioServerConfig | HttpServerConfig;
 
 export interface McpServersConfig {
   mcpServers: Record<string, ServerConfig>;
+  configPath?: string;
 }
 
 // ============================================================================
@@ -294,16 +296,42 @@ export function getPidPath(serverName: string): string {
   return join(getSocketDir(), `${serverName}.pid`);
 }
 
+/** A stable, opaque namespace for credentials and their daemon. */
+export function getCredentialIdentity(
+  configPath: string,
+  serverName: string,
+  endpoint: string,
+): string {
+  const url = new URL(endpoint);
+  url.hash = '';
+  return createHash('sha256')
+    .update(`${resolve(configPath)}\0${serverName}\0${url.toString()}`)
+    .digest('hex')
+    .slice(0, 32);
+}
+
 /**
  * Generate a hash of server config for stale detection
  * Returns consistent hash for identical configs
  */
 export function getConfigHash(config: ServerConfig): string {
-  const str = JSON.stringify(config, Object.keys(config).sort());
+  const str = JSON.stringify(sortConfigValue(config));
   // Simple hash using Bun's native hashing
   const hasher = new Bun.CryptoHasher('sha256');
   hasher.update(str);
   return hasher.digest('hex').slice(0, 16); // First 16 chars is enough
+}
+
+function sortConfigValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortConfigValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, child]) => [key, sortConfigValue(child)]),
+    );
+  }
+  return value;
 }
 
 /**
@@ -498,6 +526,7 @@ export async function loadConfig(
 
   // Substitute environment variables
   config = substituteEnvVarsInObject(config);
+  config.configPath = configPath;
 
   return config;
 }

@@ -60,8 +60,16 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
   let connection: McpConnection;
 
   try {
-    connection = await getConnection(serverName, serverConfig);
+    connection = await getConnection(
+      serverName,
+      serverConfig,
+      config.configPath,
+    );
   } catch (error) {
+    if ((error as { code?: ErrorCode }).code === ErrorCode.AUTH_ERROR) {
+      console.error((error as Error).message);
+      process.exit(ErrorCode.AUTH_ERROR);
+    }
     console.error(
       formatCliError(
         serverConnectionError(serverName, (error as Error).message),
@@ -104,6 +112,12 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
         ),
       );
     }
+  } catch (error) {
+    if ((error as { code?: ErrorCode }).code === ErrorCode.AUTH_ERROR) {
+      console.error((error as Error).message);
+      process.exit(ErrorCode.AUTH_ERROR);
+    }
+    throw error;
   } finally {
     await safeClose(connection.close);
   }

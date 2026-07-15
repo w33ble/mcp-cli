@@ -34,6 +34,7 @@ interface ServerSearchResult {
   serverName: string;
   results: SearchResult[];
   error?: string;
+  errorCode?: ErrorCode;
 }
 
 /**
@@ -121,7 +122,11 @@ async function searchServerTools(
   let connection: McpConnection | null = null;
   try {
     const serverConfig = getServerConfig(config, serverName);
-    connection = await getConnection(serverName, serverConfig);
+    connection = await getConnection(
+      serverName,
+      serverConfig,
+      config.configPath,
+    );
 
     const tools = await connection.listTools();
     const results: SearchResult[] = [];
@@ -138,7 +143,12 @@ async function searchServerTools(
   } catch (error) {
     const errorMsg = (error as Error).message;
     debug(`${serverName}: connection failed - ${errorMsg}`);
-    return { serverName, results: [], error: errorMsg };
+    return {
+      serverName,
+      results: [],
+      error: errorMsg,
+      errorCode: (error as { code?: ErrorCode }).code,
+    };
   } finally {
     if (connection) {
       await safeClose(connection.close);
@@ -184,12 +194,19 @@ export async function grepCommand(options: GrepOptions): Promise<void> {
 
   const allResults: SearchResult[] = [];
   const failedServers: string[] = [];
+  let authError: string | undefined;
 
   for (const result of serverResults) {
     allResults.push(...result.results);
     if (result.error) {
       failedServers.push(result.serverName);
     }
+    if (result.errorCode === ErrorCode.AUTH_ERROR) authError = result.error;
+  }
+
+  if (authError) {
+    console.error(authError);
+    process.exit(ErrorCode.AUTH_ERROR);
   }
 
   // Show failed servers warning
