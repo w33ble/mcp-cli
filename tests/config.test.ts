@@ -12,6 +12,7 @@ import {
   listServerNames,
   isHttpServer,
   isStdioServer,
+  getConfigHash,
 } from '../src/config';
 
 describe('config', () => {
@@ -23,6 +24,24 @@ describe('config', () => {
 
   afterEach(async () => {
     await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test('hashes nested config values deterministically', () => {
+    const first = {
+      url: 'https://example.test/mcp',
+      headers: { Authorization: 'Bearer one', Nested: 'value' },
+    };
+    const reordered = {
+      headers: { Nested: 'value', Authorization: 'Bearer one' },
+      url: 'https://example.test/mcp',
+    };
+    const changed = {
+      url: 'https://example.test/mcp',
+      headers: { Authorization: 'Bearer two', Nested: 'value' },
+    };
+
+    expect(getConfigHash(first)).toBe(getConfigHash(reordered));
+    expect(getConfigHash(first)).not.toBe(getConfigHash(changed));
   });
 
   describe('loadConfig', () => {

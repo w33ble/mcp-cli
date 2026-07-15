@@ -6,6 +6,8 @@
  */
 
 import { describe, test, expect } from 'bun:test';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { $ } from 'bun';
 
@@ -175,6 +177,38 @@ describe('CLI Error Handling Tests', () => {
       // Backward compat removed - now errors as AMBIGUOUS
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('AMBIGUOUS_COMMAND');
+    });
+  });
+
+  describe('Authentication errors', () => {
+    test('preserves OAuth guidance and exit code for tool operations', async () => {
+      const server = Bun.serve({
+        port: 0,
+        fetch: () => new Response('Unauthorized', { status: 401 }),
+      });
+      const configDir = await mkdtemp(join(tmpdir(), 'mcp-cli-auth-'));
+      const configPath = join(configDir, 'mcp_servers.json');
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          mcpServers: { protected: { url: `http://127.0.0.1:${server.port}` } },
+        }),
+      );
+
+      try {
+        const result = await runCli([
+          '-c',
+          configPath,
+          'call',
+          'protected/tool',
+          '{}',
+        ]);
+        expect(result.exitCode).toBe(4);
+        expect(result.stderr).toContain('mcp-cli auth login protected');
+      } finally {
+        server.stop(true);
+        await rm(configDir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -379,4 +413,3 @@ describe('CLI Error Handling Tests', () => {
     });
   });
 });
-

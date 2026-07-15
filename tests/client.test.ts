@@ -16,6 +16,8 @@ import {
   getTimeoutMs,
   getConcurrencyLimit,
 } from '../src/client';
+import { daemonResponseError } from '../src/daemon-client';
+import { ErrorCode } from '../src/errors';
 
 describe('client', () => {
   describe('server config type guards', () => {
@@ -238,6 +240,15 @@ describe('client', () => {
       process.env.MCP_RETRY_DELAY = '-500';
       expect(getRetryDelayMs()).toBe(1000);
     });
+  });
+
+  test('preserves OAuth error codes returned by a daemon', () => {
+    const error = daemonResponseError({
+      code: String(ErrorCode.AUTH_ERROR),
+      message: 'Authentication is required',
+    });
+
+    expect((error as Error & { code?: number }).code).toBe(ErrorCode.AUTH_ERROR);
   });
 
   // Note: Actually testing connectToServer requires a real MCP server
