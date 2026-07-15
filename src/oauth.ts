@@ -27,6 +27,7 @@ interface CredentialBundle {
 }
 
 const service = 'mcp-cli.oauth';
+let secureStoreDisabled = false;
 
 type SecretsApi = {
   get(options: { service: string; name: string }): Promise<string | null>;
@@ -35,6 +36,7 @@ type SecretsApi = {
 };
 
 function secrets(): SecretsApi | undefined {
+  if (secureStoreDisabled) return undefined;
   return (Bun as unknown as { secrets?: SecretsApi }).secrets;
 }
 
@@ -52,6 +54,7 @@ async function readBundle(
       if (raw) return JSON.parse(raw) as CredentialBundle;
     } catch {
       // Headless systems commonly do not have a usable OS credential store.
+      secureStoreDisabled = true;
     }
   }
   try {
@@ -83,6 +86,7 @@ async function writeBundle(
       return;
     } catch {
       // Headless systems commonly do not have a usable OS credential store.
+      secureStoreDisabled = true;
     }
   }
 
@@ -97,18 +101,17 @@ async function writeBundle(
 
 async function clearBundle(identity: string): Promise<void> {
   const secureStore = secrets();
-  let secureDeleteFailed = false;
   if (secureStore) {
     try {
-      await secureStore.delete({ service, name: identity });
+      const existing = await secureStore.get({ service, name: identity });
+      if (existing !== null) {
+        await secureStore.delete({ service, name: identity });
+      }
     } catch {
-      secureDeleteFailed = true;
+      secureStoreDisabled = true;
     }
   }
   await rm(credentialPath(identity), { force: true });
-  if (secureDeleteFailed) {
-    throw new Error('Failed to remove OAuth credentials from secure storage');
-  }
 }
 
 export function authError(serverName: string): Error {
@@ -343,11 +346,14 @@ export async function login(
     );
   }
   let callback: ReturnType<typeof createCallback> | undefined;
+  let stage = 'clear credentials';
   try {
     const identity = getOAuthIdentity(configPath, serverName, config);
     await clearBundle(identity);
+    stage = 'start callback server';
     const state = crypto.randomUUID();
     callback = createCallback(state);
+    stage = 'discover and register OAuth client';
     const provider = new StoredOAuthProvider(
       identity,
       serverName,
@@ -356,9 +362,21 @@ export async function login(
     );
     provider.state = () => state;
     await auth(provider, { serverUrl: config.url });
+    stage = 'wait for OAuth callback';
     const code = await callback.wait();
+    stage = 'exchange authorization code';
     await auth(provider, { serverUrl: config.url, authorizationCode: code });
   } catch (error) {
+    if (process.env.MCP_DEBUG) {
+      const errorName = error instanceof Error ? error.name : typeof error;
+      const errorCode =
+        error instanceof Error
+          ? (error as NodeJS.ErrnoException).code
+          : undefined;
+      console.error(
+        `[oauth] login failed during ${stage} with ${errorName}${errorCode ? ` (${errorCode})` : ''}`,
+      );
+    }
     throw sanitizeOAuthLoginError(error);
   } finally {
     callback?.close();
