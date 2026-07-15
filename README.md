@@ -9,6 +9,7 @@ A lightweight, Bun-based CLI for interacting with [MCP (Model Context Protocol)]
 - 🔧 **Shell-Friendly** - JSON output for call, pipes with `jq`, chaining support
 - 🤖 **Agent-Optimized** - Designed for AI coding agents (Gemini CLI, Claude Code, etc.)
 - 🔌 **Universal** - Supports both stdio and HTTP MCP servers
+- 🔐 **OAuth** - Authenticate Streamable HTTP servers with PKCE and loopback callbacks
 - ⚡ **Connection Pooling** - Lazy-spawn daemon keeps connections warm (60s idle timeout)
 - � **Tool Filtering** - Allow/disable specific tools per server via config
 - 📋 **Server Instructions** - Display MCP server instructions in output
@@ -82,6 +83,9 @@ mcp-cli [options] info <server> <tool>        Show tool schema
 mcp-cli [options] grep <pattern>              Search tools by glob pattern
 mcp-cli [options] call <server> <tool>        Call tool (reads JSON from stdin if no args)
 mcp-cli [options] call <server> <tool> <json> Call tool with JSON arguments
+mcp-cli [options] auth login <server>         Start OAuth login for an HTTP server
+mcp-cli [options] auth status <server>        Check stored OAuth credentials
+mcp-cli [options] auth logout <server>        Remove stored OAuth credentials
 ```
 
 **Both formats work:** `info <server> <tool>` or `info <server>/<tool>`
@@ -200,6 +204,38 @@ $ mcp-cli call github search_repositories '{"query": "mcp"}' | jq '.content[0].t
 $ echo '{"path": "./README.md"}' | mcp-cli call filesystem read_file
 
 ```
+
+#### Authenticate an HTTP Server
+
+OAuth is supported for Streamable HTTP servers configured with a `url`. Stdio
+and npx-based servers are expected to handle their own authentication.
+
+Start authentication using the configured server name:
+
+```bash
+mcp-cli auth login notion
+```
+
+The CLI prints a temporary loopback OAuth URL to stderr and waits for the
+browser callback. Show the complete URL to the user and ask them to open it and
+authenticate. Do not edit the URL or claim success until the login command
+exits successfully.
+
+After authenticating, check or use the server:
+
+```bash
+mcp-cli auth status notion
+mcp-cli info notion
+```
+
+Use the same config option for authentication that you use for other commands:
+
+```bash
+mcp-cli -c ~/.config/mcp/mcp_servers.json auth login notion
+```
+
+Credentials use the operating system secure store when available, with a
+permission-restricted file fallback under `~/.config/mcp/oauth/`.
 
 #### Complex Commands
 
@@ -341,11 +377,13 @@ Restrict which tools are available from a server using `allowedTools` and `disab
 
 The CLI searches for configuration in this order:
 
-1. `MCP_CONFIG_PATH` environment variable
-2. `-c/--config` command line argument
+1. `-c/--config` command line argument
+2. `MCP_CONFIG_PATH` environment variable
 3. `./mcp_servers.json` (current directory)
 4. `~/.mcp_servers.json`
 5. `~/.config/mcp/mcp_servers.json`
+
+An existing local `./mcp_servers.json` takes precedence over the home config.
 
 ### Environment Variables
 
@@ -353,6 +391,7 @@ The CLI searches for configuration in this order:
 |----------|-------------|---------|
 | `MCP_CONFIG_PATH` | Path to config file | (none) |
 | `MCP_DEBUG` | Enable debug output | `false` |
+| `NO_COLOR` | Disable colored output | (unset) |
 | `MCP_TIMEOUT` | Request timeout (seconds) | `1800` (30 min) |
 | `MCP_CONCURRENCY` | Servers processed in parallel (not a limit on total) | `5` |
 | `MCP_MAX_RETRIES` | Retry attempts for transient errors (0 = disable) | `3` |
@@ -392,6 +431,7 @@ mcp-cli info <server> <tool>        # Get tool schema
 mcp-cli grep "<pattern>"            # Search tools
 mcp-cli call <server> <tool>        # Call tool (stdin auto-detected)
 mcp-cli call <server> <tool> '{}'   # Call with JSON args
+mcp-cli auth login <server>         # Start OAuth login when required
 ```
 
 **Both formats work:** `info <server> <tool>` or `info <server>/<tool>`
@@ -400,7 +440,8 @@ Workflow:
 
 1. **Discover**: `mcp-cli info` to see available servers
 2. **Inspect**: `mcp-cli info <server> <tool>` to get the schema
-3. **Execute**: `mcp-cli call <server> <tool> '{}'` with arguments
+3. **Authenticate when required**: run `mcp-cli auth login <server>`, show the printed URL to the user, and wait for them to authenticate
+4. **Execute**: `mcp-cli call <server> <tool> '{}'` with arguments
 
 ### Examples
 
