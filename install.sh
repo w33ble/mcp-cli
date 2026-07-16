@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install script for mcp-cli
-# Usage: curl -fsSL https://raw.githubusercontent.com/philschmid/mcp-cli/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/w33ble/mcp-cli/main/install.sh | bash
 
 set -e
 
@@ -59,7 +59,7 @@ if [ -z "${INSTALL_DIR:-}" ]; then
     fi
 fi
 
-GITHUB_REPO="philschmid/mcp-cli"
+GITHUB_REPO="w33ble/mcp-cli"
 
 # Print banner
 echo ""
