@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-29
+
+### Fixed
+
+- **Connection daemon works in release binaries** - Compiled binaries tried to spawn the daemon with `bun run <dir>/daemon.ts`, a file that doesn't exist inside a compiled executable, so every call silently fell back to a fresh direct connection. This has been broken in every release binary since the daemon was introduced in 0.3.0. The binary now re-executes itself with `--daemon`, so connections stay warm between calls as intended
+
 ## [0.5.0] - 2026-10-29
 
 ### Changed
