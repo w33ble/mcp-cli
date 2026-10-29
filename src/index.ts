@@ -16,6 +16,7 @@ import { callCommand } from './commands/call.js';
 import { grepCommand } from './commands/grep.js';
 import { infoCommand } from './commands/info.js';
 import { listCommand } from './commands/list.js';
+import { runDaemonFromArgs } from './daemon.js';
 import {
   ErrorCode,
   ambiguousCommandError,
@@ -436,23 +437,30 @@ async function main(): Promise<void> {
   }
 }
 
-// Handle graceful shutdown on SIGINT/SIGTERM
-process.on('SIGINT', () => {
-  process.exit(130); // 128 + SIGINT(2)
-});
-process.on('SIGTERM', () => {
-  process.exit(143); // 128 + SIGTERM(15)
-});
-
-// Run
-main()
-  .then(() => {
-    // Use setImmediate to let stdout flush before exiting
-    setImmediate(() => process.exit(0));
-  })
-  .catch((error) => {
-    // Error message already formatted by command handlers
-    console.error(error.message);
-    const code = (error as { code?: unknown }).code;
-    setImmediate(() => process.exit(typeof code === 'number' ? code : ErrorCode.CLIENT_ERROR));
+if (process.argv[2] === '--daemon') {
+  // Compiled binaries re-execute themselves as the daemon (see spawnDaemon)
+  runDaemonFromArgs(process.argv.slice(3)).catch((error) => {
+    console.error('Daemon failed:', error);
+    process.exit(1);
   });
+} else {
+  // Handle graceful shutdown on SIGINT/SIGTERM
+  process.on('SIGINT', () => {
+    process.exit(130); // 128 + SIGINT(2)
+  });
+  process.on('SIGTERM', () => {
+    process.exit(143); // 128 + SIGTERM(15)
+  });
+
+  main()
+    .then(() => {
+      // Use setImmediate to let stdout flush before exiting
+      setImmediate(() => process.exit(0));
+    })
+    .catch((error) => {
+      // Error message already formatted by command handlers
+      console.error(error.message);
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      setImmediate(() => process.exit(typeof code === 'number' ? code : ErrorCode.CLIENT_ERROR));
+    });
+}

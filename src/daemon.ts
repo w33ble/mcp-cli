@@ -366,35 +366,32 @@ export async function runDaemon(
 }
 
 // ============================================================================
-// Entry point when run directly
+// Entry point: `--daemon <serverName> [namespace] [configPath]`, config JSON on stdin
 // ============================================================================
 
-// Check if running as daemon process
-if (process.argv[2] === '--daemon') {
-  const serverName = process.argv[3];
-  const namespace = process.argv[4];
-  const configPath = process.argv[5];
+export async function runDaemonFromArgs(args: string[]): Promise<void> {
+  const [serverName, namespace, configPath] = args;
 
   if (!serverName) {
-    console.error('Usage: daemon.ts --daemon <serverName> [namespace] [configPath] < configJson');
+    console.error('Usage: --daemon <serverName> [namespace] [configPath] < configJson');
     process.exit(1);
   }
 
-  Bun.stdin
-    .text()
-    .then((configJson) => {
-      let config: ServerConfig;
-      try {
-        config = JSON.parse(configJson);
-      } catch {
-        console.error('Invalid config JSON on stdin');
-        process.exit(1);
-      }
+  let config: ServerConfig;
+  try {
+    config = JSON.parse(await Bun.stdin.text());
+  } catch {
+    console.error('Invalid config JSON on stdin');
+    process.exit(1);
+  }
 
-      return runDaemon(serverName, config, namespace, configPath);
-    })
-    .catch((error) => {
-      console.error('Daemon failed:', error);
-      process.exit(1);
-    });
+  await runDaemon(serverName, config, namespace, configPath);
+}
+
+// Source runs spawn this file directly; compiled binaries route `--daemon` through src/index.ts
+if (import.meta.main && process.argv[2] === '--daemon') {
+  runDaemonFromArgs(process.argv.slice(3)).catch((error) => {
+    console.error('Daemon failed:', error);
+    process.exit(1);
+  });
 }

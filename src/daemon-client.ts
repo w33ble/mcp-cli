@@ -168,15 +168,16 @@ async function spawnDaemon(
 ): Promise<boolean> {
   debug(`[daemon-client] Spawning daemon for ${serverName}`);
 
-  // Find the daemon script path
+  // From source, run daemon.ts; a compiled binary has no daemon.ts on disk, so it re-executes itself
   const daemonScript = join(import.meta.dir, 'daemon.ts');
+  const entry = existsSync(daemonScript) ? ['run', daemonScript] : [];
 
   // Config carries resolved secrets; send via stdin so it never appears in argv (ps)
   const configJson = JSON.stringify(config);
 
   // Spawn detached process
   const proc = Bun.spawn({
-    cmd: ['bun', 'run', daemonScript, '--daemon', serverName, namespace, configPath ?? ''],
+    cmd: [process.execPath, ...entry, '--daemon', serverName, namespace, configPath ?? ''],
     stdin: new Blob([configJson]),
     stdout: 'pipe',
     stderr: 'pipe',
