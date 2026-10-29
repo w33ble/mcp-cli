@@ -3,6 +3,7 @@
  */
 
 import { describe, test, expect } from 'bun:test';
+
 import {
   formatServerList,
   formatSearchResults,
@@ -28,9 +29,7 @@ describe('output', () => {
         },
         {
           name: 'filesystem',
-          tools: [
-            { name: 'read_file', description: 'Read file', inputSchema: {} },
-          ],
+          tools: [{ name: 'read_file', description: 'Read file', inputSchema: {} }],
         },
       ];
 
@@ -46,9 +45,7 @@ describe('output', () => {
       const servers = [
         {
           name: 'test',
-          tools: [
-            { name: 'tool1', description: 'A test tool', inputSchema: {} },
-          ],
+          tools: [{ name: 'tool1', description: 'A test tool', inputSchema: {} }],
         },
       ];
 

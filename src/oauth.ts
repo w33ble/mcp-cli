@@ -1,22 +1,14 @@
-import {
-  chmod,
-  mkdir,
-  readFile,
-  rename,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import {
-  type OAuthClientProvider,
-  auth,
-} from '@modelcontextprotocol/sdk/client/auth.js';
+
+import { type OAuthClientProvider, auth } from '@modelcontextprotocol/sdk/client/auth.js';
 import type {
   OAuthClientInformationMixed,
   OAuthClientMetadata,
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth.js';
+
 import { type HttpServerConfig, getCredentialIdentity } from './config.js';
 import { ErrorCode, formatCliError } from './errors.js';
 
@@ -44,9 +36,7 @@ function credentialPath(identity: string): string {
   return join(homedir(), '.config', 'mcp', 'oauth', `${identity}.json`);
 }
 
-async function readBundle(
-  identity: string,
-): Promise<CredentialBundle | undefined> {
+async function readBundle(identity: string): Promise<CredentialBundle | undefined> {
   const secureStore = secrets();
   if (secureStore) {
     try {
@@ -66,16 +56,11 @@ async function readBundle(
     return bundle;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
-    throw new Error(
-      'OAuth credential storage is corrupt; run auth login again',
-    );
+    throw new Error('OAuth credential storage is corrupt; run auth login again');
   }
 }
 
-async function writeBundle(
-  identity: string,
-  bundle: CredentialBundle,
-): Promise<void> {
+async function writeBundle(identity: string, bundle: CredentialBundle): Promise<void> {
   const raw = JSON.stringify(bundle);
   const path = credentialPath(identity);
   const secureStore = secrets();
@@ -121,7 +106,7 @@ export function authError(serverName: string): Error {
       type: 'AUTH_ERROR',
       message: `Authentication is required for server "${serverName}"`,
       suggestion: `Run 'mcp-cli auth login ${serverName}' to authenticate`,
-    }),
+    })
   );
   (error as Error & { code: ErrorCode }).code = ErrorCode.AUTH_ERROR;
   return error;
@@ -136,7 +121,7 @@ function isAuthRequiredError(error: unknown): boolean {
     status.status === 401 ||
     status.statusCode === 401 ||
     /\b(401|unauthorized|authentication required|auth required|invalid_token)\b/i.test(
-      error.message,
+      error.message
     )
   );
 }
@@ -145,7 +130,7 @@ export function normalizeMissingOAuthCredentialsError(
   error: unknown,
   serverName: string,
   hasOAuthClient: boolean,
-  hasAuthorizationHeader = false,
+  hasAuthorizationHeader = false
 ): Error {
   if (!hasOAuthClient && !hasAuthorizationHeader && isAuthRequiredError(error))
     return authError(serverName);
@@ -156,15 +141,10 @@ export function sanitizeOAuthLoginError(error: unknown): Error {
   if (error instanceof Error && error.message === 'OAuth callback timed out') {
     return new Error('OAuth login timed out. Try again.');
   }
-  if (
-    error instanceof Error &&
-    error.message === 'OAuth authorization was denied'
-  ) {
+  if (error instanceof Error && error.message === 'OAuth authorization was denied') {
     return new Error('OAuth authorization was denied. Try again.');
   }
-  return new Error(
-    'OAuth login failed. Verify the server OAuth configuration and try again.',
-  );
+  return new Error('OAuth login failed. Verify the server OAuth configuration and try again.');
 }
 
 class StoredOAuthProvider implements OAuthClientProvider {
@@ -176,7 +156,7 @@ class StoredOAuthProvider implements OAuthClientProvider {
     private readonly identity: string,
     private readonly serverName: string,
     readonly redirectUrl: string,
-    private readonly interactive: boolean,
+    private readonly interactive: boolean
   ) {
     this.clientMetadata = {
       client_name: 'mcp-cli',
@@ -195,9 +175,7 @@ class StoredOAuthProvider implements OAuthClientProvider {
   async clientInformation(): Promise<OAuthClientInformationMixed | undefined> {
     return (await this.load()).clientInformation;
   }
-  async saveClientInformation(
-    value: OAuthClientInformationMixed,
-  ): Promise<void> {
+  async saveClientInformation(value: OAuthClientInformationMixed): Promise<void> {
     if (!this.interactive) throw authError(this.serverName);
     const bundle = await this.load();
     bundle.clientInformation = value;
@@ -227,16 +205,13 @@ class StoredOAuthProvider implements OAuthClientProvider {
     if (!this.interactive) throw authError(this.serverName);
     process.stderr.write(`Open this URL to authenticate:\n${url.toString()}\n`);
   }
-  async invalidateCredentials(
-    scope: 'all' | 'client' | 'tokens' | 'verifier',
-  ): Promise<void> {
+  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier'): Promise<void> {
     const bundle = await this.load();
     if (scope === 'all' || scope === 'client') {
       bundle.clientInformation = undefined;
     }
     if (scope === 'all' || scope === 'tokens') bundle.tokens = undefined;
-    if (scope === 'all' || scope === 'verifier')
-      bundle.codeVerifier = undefined;
+    if (scope === 'all' || scope === 'verifier') bundle.codeVerifier = undefined;
     await writeBundle(this.identity, bundle);
   }
 }
@@ -244,19 +219,15 @@ class StoredOAuthProvider implements OAuthClientProvider {
 export function getOAuthIdentity(
   configPath: string | undefined,
   serverName: string,
-  config: HttpServerConfig,
+  config: HttpServerConfig
 ): string {
-  return getCredentialIdentity(
-    configPath ?? process.cwd(),
-    serverName,
-    config.url,
-  );
+  return getCredentialIdentity(configPath ?? process.cwd(), serverName, config.url);
 }
 
 export async function createNonInteractiveOAuthProvider(
   serverName: string,
   config: HttpServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<OAuthClientProvider | undefined> {
   const identity = getOAuthIdentity(configPath, serverName, config);
   const clientInformation = (await readBundle(identity))?.clientInformation;
@@ -272,9 +243,7 @@ export async function createNonInteractiveOAuthProvider(
 }
 
 function hasAuthorizationHeader(config: HttpServerConfig): boolean {
-  return Object.keys(config.headers ?? {}).some(
-    (name) => name.toLowerCase() === 'authorization',
-  );
+  return Object.keys(config.headers ?? {}).some((name) => name.toLowerCase() === 'authorization');
 }
 
 function createCallback(expectedState: string): {
@@ -307,15 +276,11 @@ function createCallback(expectedState: string): {
         return new Response('Authorization failed', { status: 400, headers });
       }
       const code = url.searchParams.get('code');
-      if (!code)
-        return new Response('Authorization failed', { status: 400, headers });
+      if (!code) return new Response('Authorization failed', { status: 400, headers });
       clearTimeout(timer);
       server.stop(true);
       resolveCode(code);
-      return new Response(
-        'Authentication complete. You can close this window.',
-        { headers },
-      );
+      return new Response('Authentication complete. You can close this window.', { headers });
     },
   });
   const timer = setTimeout(
@@ -323,7 +288,7 @@ function createCallback(expectedState: string): {
       server.stop(true);
       rejectCode(new Error('OAuth callback timed out'));
     },
-    5 * 60 * 1000,
+    5 * 60 * 1000
   );
   return {
     redirectUrl: `http://127.0.0.1:${server.port}/oauth/callback`,
@@ -338,12 +303,10 @@ function createCallback(expectedState: string): {
 export async function login(
   serverName: string,
   config: HttpServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<void> {
   if (hasAuthorizationHeader(config)) {
-    throw new Error(
-      'OAuth login cannot be used with a configured Authorization header',
-    );
+    throw new Error('OAuth login cannot be used with a configured Authorization header');
   }
   let callback: ReturnType<typeof createCallback> | undefined;
   let stage = 'clear credentials';
@@ -354,12 +317,7 @@ export async function login(
     const state = crypto.randomUUID();
     callback = createCallback(state);
     stage = 'discover and register OAuth client';
-    const provider = new StoredOAuthProvider(
-      identity,
-      serverName,
-      callback.redirectUrl,
-      true,
-    );
+    const provider = new StoredOAuthProvider(identity, serverName, callback.redirectUrl, true);
     provider.state = () => state;
     await auth(provider, { serverUrl: config.url });
     stage = 'wait for OAuth callback';
@@ -369,12 +327,9 @@ export async function login(
   } catch (error) {
     if (process.env.MCP_DEBUG) {
       const errorName = error instanceof Error ? error.name : typeof error;
-      const errorCode =
-        error instanceof Error
-          ? (error as NodeJS.ErrnoException).code
-          : undefined;
+      const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
       console.error(
-        `[oauth] login failed during ${stage} with ${errorName}${errorCode ? ` (${errorCode})` : ''}`,
+        `[oauth] login failed during ${stage} with ${errorName}${errorCode ? ` (${errorCode})` : ''}`
       );
     }
     throw sanitizeOAuthLoginError(error);
@@ -386,7 +341,7 @@ export async function login(
 export async function logout(
   serverName: string,
   config: HttpServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<boolean> {
   const identity = getOAuthIdentity(configPath, serverName, config);
   const existing = await readBundle(identity);
@@ -397,10 +352,8 @@ export async function logout(
 export async function oauthStatus(
   serverName: string,
   config: HttpServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<boolean> {
-  const bundle = await readBundle(
-    getOAuthIdentity(configPath, serverName, config),
-  );
+  const bundle = await readBundle(getOAuthIdentity(configPath, serverName, config));
   return Boolean(bundle?.tokens);
 }

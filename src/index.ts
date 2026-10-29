@@ -120,9 +120,7 @@ function parseArgs(args: string[]): ParsedArgs {
       case '--config':
         result.configPath = args[++i];
         if (!result.configPath) {
-          console.error(
-            formatCliError(missingArgumentError('-c/--config', 'path')),
-          );
+          console.error(formatCliError(missingArgumentError('-c/--config', 'path')));
           process.exit(ErrorCode.CLIENT_ERROR);
         }
         break;
@@ -180,17 +178,12 @@ function parseArgs(args: string[]): ParsedArgs {
         }
       }
 
-      const serverList =
-        availableServers.length > 0
-          ? availableServers.join(', ')
-          : '(none found)';
+      const serverList = availableServers.length > 0 ? availableServers.join(', ') : '(none found)';
 
-      console.error(
-        'Error [MISSING_ARGUMENT]: Missing required argument for info: server',
-      );
+      console.error('Error [MISSING_ARGUMENT]: Missing required argument for info: server');
       console.error(`  Available servers: ${serverList}`);
       console.error(
-        `  Suggestion: Use 'mcp-cli info <server>' to see server details, or just 'mcp-cli' to list all`,
+        `  Suggestion: Use 'mcp-cli info <server>' to see server details, or just 'mcp-cli' to list all`
       );
       process.exit(ErrorCode.CLIENT_ERROR);
     }
@@ -208,9 +201,7 @@ function parseArgs(args: string[]): ParsedArgs {
       process.exit(ErrorCode.CLIENT_ERROR);
     }
     if (positional.length > 2) {
-      console.error(
-        formatCliError(tooManyArgumentsError('grep', positional.length - 1, 1)),
-      );
+      console.error(formatCliError(tooManyArgumentsError('grep', positional.length - 1, 1)));
       process.exit(ErrorCode.CLIENT_ERROR);
     }
     return result;
@@ -221,9 +212,7 @@ function parseArgs(args: string[]): ParsedArgs {
     const remaining = positional.slice(1);
 
     if (remaining.length === 0) {
-      console.error(
-        formatCliError(missingArgumentError('call', 'server and tool')),
-      );
+      console.error(formatCliError(missingArgumentError('call', 'server and tool')));
       process.exit(ErrorCode.CLIENT_ERROR);
     }
 
@@ -269,11 +258,7 @@ function parseArgs(args: string[]): ParsedArgs {
   if (firstArg === 'auth') {
     const action = positional[1];
     const server = positional[2];
-    if (
-      !['login', 'logout', 'status'].includes(action) ||
-      !server ||
-      positional.length !== 3
-    ) {
+    if (!['login', 'logout', 'status'].includes(action) || !server || positional.length !== 3) {
       console.error('Usage: mcp-cli auth <login|logout|status> <server>');
       process.exit(ErrorCode.CLIENT_ERROR);
     }
@@ -301,9 +286,7 @@ function parseArgs(args: string[]): ParsedArgs {
     const serverName = parts[0];
     const toolName = parts[1] || '';
     const hasArgs = positional.length > 1;
-    console.error(
-      formatCliError(ambiguousCommandError(serverName, toolName, hasArgs)),
-    );
+    console.error(formatCliError(ambiguousCommandError(serverName, toolName, hasArgs)));
     process.exit(ErrorCode.CLIENT_ERROR);
   }
 
@@ -316,17 +299,12 @@ function parseArgs(args: string[]): ParsedArgs {
     const possibleTool = positional[1];
 
     // Check if second arg looks like a tool name (not JSON)
-    const looksLikeJson =
-      possibleTool.startsWith('{') || possibleTool.startsWith('[');
+    const looksLikeJson = possibleTool.startsWith('{') || possibleTool.startsWith('[');
     const looksLikeToolName = /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(possibleTool);
 
     if (!looksLikeJson && looksLikeToolName) {
       const hasArgs = positional.length > 2;
-      console.error(
-        formatCliError(
-          ambiguousCommandError(serverName, possibleTool, hasArgs),
-        ),
-      );
+      console.error(formatCliError(ambiguousCommandError(serverName, possibleTool, hasArgs)));
       process.exit(ErrorCode.CLIENT_ERROR);
     }
   }
@@ -476,7 +454,5 @@ main()
     // Error message already formatted by command handlers
     console.error(error.message);
     const code = (error as { code?: unknown }).code;
-    setImmediate(() =>
-      process.exit(typeof code === 'number' ? code : ErrorCode.CLIENT_ERROR),
-    );
+    setImmediate(() => process.exit(typeof code === 'number' ? code : ErrorCode.CLIENT_ERROR));
   });

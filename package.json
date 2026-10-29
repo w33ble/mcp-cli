@@ -3,11 +3,29 @@
   "version": "0.4.1",
   "private": true,
   "description": "A lightweight CLI for interacting with MCP (Model Context Protocol) servers",
-  "type": "module",
-  "main": "src/index.ts",
+  "keywords": [
+    "agents",
+    "ai",
+    "cli",
+    "mcp",
+    "model-context-protocol",
+    "tools"
+  ],
+  "homepage": "https://github.com/w33ble/mcp-cli#readme",
+  "bugs": {
+    "url": "https://github.com/w33ble/mcp-cli/issues"
+  },
+  "license": "MIT",
+  "author": "w33ble",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/w33ble/mcp-cli"
+  },
   "bin": {
     "mcp-cli": "src/index.ts"
   },
+  "type": "module",
+  "main": "src/index.ts",
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun build --compile --minify src/index.ts --outfile dist/mcp-cli",
@@ -34,24 +52,6 @@
     "oxlint": "^1.90.0",
     "typescript": "^7.0.2"
   },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "cli",
-    "ai",
-    "tools",
-    "agents"
-  ],
-  "author": "w33ble",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/w33ble/mcp-cli"
-  },
-  "bugs": {
-    "url": "https://github.com/w33ble/mcp-cli/issues"
-  },
-  "homepage": "https://github.com/w33ble/mcp-cli#readme",
   "engines": {
     "bun": "^1.4.4"
   }

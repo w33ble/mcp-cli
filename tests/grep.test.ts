@@ -3,6 +3,7 @@
  */
 
 import { describe, test, expect } from 'bun:test';
+
 import { globToRegex } from '../src/commands/grep';
 
 describe('globToRegex', () => {

@@ -3,6 +3,8 @@
  */
 
 import { describe, test, expect, afterEach } from 'bun:test';
+
+import { isTransientError, getTimeoutMs, getConcurrencyLimit } from '../src/client';
 import {
   type HttpServerConfig,
   type StdioServerConfig,
@@ -11,11 +13,6 @@ import {
   getMaxRetries,
   getRetryDelayMs,
 } from '../src/config';
-import {
-  isTransientError,
-  getTimeoutMs,
-  getConcurrencyLimit,
-} from '../src/client';
 import { daemonResponseError } from '../src/daemon-client';
 import { ErrorCode } from '../src/errors';
 

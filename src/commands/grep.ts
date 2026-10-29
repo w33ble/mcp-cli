@@ -10,12 +10,7 @@ import {
   getConnection,
   safeClose,
 } from '../client.js';
-import {
-  type McpServersConfig,
-  getServerConfig,
-  listServerNames,
-  loadConfig,
-} from '../config.js';
+import { type McpServersConfig, getServerConfig, listServerNames, loadConfig } from '../config.js';
 import { ErrorCode } from '../errors.js';
 import { formatSearchResults } from '../output.js';
 
@@ -88,7 +83,7 @@ export function globToRegex(pattern: string): RegExp {
 async function processWithConcurrency<T, R>(
   items: T[],
   processor: (item: T, index: number) => Promise<R>,
-  maxConcurrency: number,
+  maxConcurrency: number
 ): Promise<R[]> {
   const results: R[] = [];
   let currentIndex = 0;
@@ -101,10 +96,7 @@ async function processWithConcurrency<T, R>(
   }
 
   // Start workers up to concurrency limit
-  const workers = Array.from(
-    { length: Math.min(maxConcurrency, items.length) },
-    () => worker(),
-  );
+  const workers = Array.from({ length: Math.min(maxConcurrency, items.length) }, () => worker());
 
   await Promise.all(workers);
   return results;
@@ -116,16 +108,12 @@ async function processWithConcurrency<T, R>(
 async function searchServerTools(
   serverName: string,
   config: McpServersConfig,
-  pattern: RegExp,
+  pattern: RegExp
 ): Promise<ServerSearchResult> {
   let connection: McpConnection | null = null;
   try {
     const serverConfig = getServerConfig(config, serverName);
-    connection = await getConnection(
-      serverName,
-      serverConfig,
-      config.configPath,
-    );
+    connection = await getConnection(serverName, serverConfig, config.configPath);
 
     const tools = await connection.listTools();
     const results: SearchResult[] = [];
@@ -172,23 +160,21 @@ export async function grepCommand(options: GrepOptions): Promise<void> {
   const serverNames = listServerNames(config);
 
   if (serverNames.length === 0) {
-    console.error(
-      'Warning: No servers configured. Add servers to mcp_servers.json',
-    );
+    console.error('Warning: No servers configured. Add servers to mcp_servers.json');
     return;
   }
 
   const concurrencyLimit = getConcurrencyLimit();
 
   debug(
-    `Searching ${serverNames.length} servers for pattern "${options.pattern}" (concurrency: ${concurrencyLimit})`,
+    `Searching ${serverNames.length} servers for pattern "${options.pattern}" (concurrency: ${concurrencyLimit})`
   );
 
   // Process servers in parallel with concurrency limit
   const serverResults = await processWithConcurrency(
     serverNames,
     (serverName) => searchServerTools(serverName, config, pattern),
-    concurrencyLimit,
+    concurrencyLimit
   );
 
   const allResults: SearchResult[] = [];
@@ -211,7 +197,7 @@ export async function grepCommand(options: GrepOptions): Promise<void> {
   // Show failed servers warning
   if (failedServers.length > 0) {
     console.error(
-      `Warning: ${failedServers.length} server(s) failed to connect: ${failedServers.join(', ')}`,
+      `Warning: ${failedServers.length} server(s) failed to connect: ${failedServers.join(', ')}`
     );
   }
 

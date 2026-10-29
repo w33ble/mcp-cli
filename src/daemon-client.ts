@@ -6,6 +6,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+
 import {
   type ServerConfig,
   debug,
@@ -25,10 +26,7 @@ import {
   removeSocketFile,
 } from './daemon.js';
 
-export function daemonResponseError(error?: {
-  code: string;
-  message: string;
-}): Error {
+export function daemonResponseError(error?: { code: string; message: string }): Error {
   const result = new Error(error?.message ?? 'Daemon request failed');
   const code = Number(error?.code);
   if (Number.isInteger(code)) {
@@ -47,10 +45,7 @@ export function daemonResponseError(error?: {
 export interface DaemonConnection {
   serverName: string;
   listTools: () => Promise<unknown>;
-  callTool: (
-    toolName: string,
-    args: Record<string, unknown>,
-  ) => Promise<unknown>;
+  callTool: (toolName: string, args: Record<string, unknown>) => Promise<unknown>;
   getInstructions: () => Promise<string | undefined>;
   close: () => Promise<void>;
 }
@@ -68,7 +63,7 @@ function generateRequestId(): string {
 async function sendRequest(
   socketPath: string,
   request: DaemonRequest,
-  timeoutMs = 5000,
+  timeoutMs = 5000
 ): Promise<DaemonResponse> {
   return new Promise((resolve, reject) => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -143,9 +138,7 @@ function isDaemonValid(namespace: string, config: ServerConfig): boolean {
   // Check if config matches
   const currentHash = getConfigHash(config);
   if (pidInfo.configHash !== currentHash) {
-    debug(
-      `[daemon-client] Config hash mismatch for ${namespace}, killing old daemon`,
-    );
+    debug(`[daemon-client] Config hash mismatch for ${namespace}, killing old daemon`);
     killProcess(pidInfo.pid);
     removePidFile(namespace);
     removeSocketFile(namespace);
@@ -170,7 +163,7 @@ async function spawnDaemon(
   serverName: string,
   config: ServerConfig,
   namespace: string,
-  configPath?: string,
+  configPath?: string
 ): Promise<boolean> {
   debug(`[daemon-client] Spawning daemon for ${serverName}`);
 
@@ -182,15 +175,7 @@ async function spawnDaemon(
 
   // Spawn detached process
   const proc = Bun.spawn({
-    cmd: [
-      'bun',
-      'run',
-      daemonScript,
-      '--daemon',
-      serverName,
-      namespace,
-      configPath ?? '',
-    ],
+    cmd: ['bun', 'run', daemonScript, '--daemon', serverName, namespace, configPath ?? ''],
     stdin: new Blob([configJson]),
     stdout: 'pipe',
     stderr: 'pipe',
@@ -263,27 +248,18 @@ async function spawnDaemon(
 export async function getDaemonConnection(
   serverName: string,
   config: ServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<DaemonConnection | null> {
   const namespace =
     'url' in config
-      ? getCredentialIdentity(
-          configPath ?? process.cwd(),
-          serverName,
-          config.url,
-        )
+      ? getCredentialIdentity(configPath ?? process.cwd(), serverName, config.url)
       : `${serverName}-${getConfigHash(config)}`;
   const socketPath = getSocketPath(namespace);
 
   // Check if valid daemon exists
   if (!isDaemonValid(namespace, config)) {
     // Spawn new daemon
-    const spawned = await spawnDaemon(
-      serverName,
-      config,
-      namespace,
-      configPath,
-    );
+    const spawned = await spawnDaemon(serverName, config, namespace, configPath);
     if (!spawned) {
       debug(`[daemon-client] Failed to spawn daemon for ${serverName}`);
       return null;
@@ -311,9 +287,7 @@ export async function getDaemonConnection(
       return null;
     }
   } catch (error) {
-    debug(
-      `[daemon-client] Connection test failed for ${serverName}: ${(error as Error).message}`,
-    );
+    debug(`[daemon-client] Connection test failed for ${serverName}: ${(error as Error).message}`);
     return null;
   }
 
@@ -330,7 +304,7 @@ export async function getDaemonConnection(
           id: generateRequestId(),
           type: 'listTools',
         },
-        getTimeoutMs(),
+        getTimeoutMs()
       );
 
       if (!response.success) {
@@ -340,10 +314,7 @@ export async function getDaemonConnection(
       return response.data;
     },
 
-    async callTool(
-      toolName: string,
-      args: Record<string, unknown>,
-    ): Promise<unknown> {
+    async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
       const response = await sendRequest(
         socketPath,
         {
@@ -352,7 +323,7 @@ export async function getDaemonConnection(
           toolName,
           args,
         },
-        getTimeoutMs(),
+        getTimeoutMs()
       );
 
       if (!response.success) {
@@ -369,7 +340,7 @@ export async function getDaemonConnection(
           id: generateRequestId(),
           type: 'getInstructions',
         },
-        getTimeoutMs(),
+        getTimeoutMs()
       );
 
       if (!response.success) {
@@ -419,11 +390,7 @@ export async function invalidateDaemon(namespace: string): Promise<void> {
   const pidInfo = readPidFile(namespace);
   if (!pidInfo) return;
   killProcess(pidInfo.pid);
-  for (
-    let attempt = 0;
-    attempt < 50 && isProcessRunning(pidInfo.pid);
-    attempt++
-  ) {
+  for (let attempt = 0; attempt < 50 && isProcessRunning(pidInfo.pid); attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
   if (isProcessRunning(pidInfo.pid)) return;

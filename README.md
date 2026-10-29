@@ -25,7 +25,7 @@ A lightweight, Bun-based CLI for interacting with [MCP (Model Context Protocol)]
 curl -fsSL https://raw.githubusercontent.com/w33ble/mcp-cli/main/install.sh | bash
 ```
 
-or 
+or
 
 ```bash
 # requires bun install
@@ -41,11 +41,7 @@ Create `mcp_servers.json` in your current directory or `~/.config/mcp/`:
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "."
-      ]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
     },
     "deepwiki": {
       "url": "https://mcp.deepwiki.com/mcp"
@@ -95,19 +91,19 @@ mcp-cli [options] auth logout <server>        Remove stored OAuth credentials
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-h, --help` | Show help message |
-| `-v, --version` | Show version number |
+| Option                    | Description               |
+| ------------------------- | ------------------------- |
+| `-h, --help`              | Show help message         |
+| `-v, --version`           | Show version number       |
 | `-d, --with-descriptions` | Include tool descriptions |
-| `-c, --config <path>` | Path to config file |
+| `-c, --config <path>`     | Path to config file       |
 
 ### Output
 
-| Stream | Content |
-|--------|---------|
+| Stream     | Content                              |
+| ---------- | ------------------------------------ |
 | **stdout** | Tool results and human-readable info |
-| **stderr** | Errors and diagnostics |
+| **stderr** | Errors and diagnostics               |
 
 ### Commands
 
@@ -302,11 +298,11 @@ fi
 ```
 
 **Tips for chaining:**
+
 - Use `jq -r` for raw output (no quotes)
 - Use `jq -e` for conditional checks (exit code 1 if false)
 - Use `2>/dev/null` to suppress errors when testing
 - Use `| jq -s '.'` to combine multiple JSON outputs
-
 
 ## Configuration
 
@@ -355,12 +351,14 @@ Restrict which tools are available from a server using `allowedTools` and `disab
 ```
 
 **Rules:**
+
 - `allowedTools`: Only tools matching these patterns are available (supports glob: `*`, `?`)
 - `disabledTools`: Tools matching these patterns are excluded
 - **`disabledTools` takes precedence** over `allowedTools`
 - Filtering applies globally to all CLI operations (info, grep, call)
 
 **Examples:**
+
 ```json
 // Only allow read operations
 "allowedTools": ["read_*", "list_*", "search_*"]
@@ -387,18 +385,18 @@ An existing local `./mcp_servers.json` takes precedence over the home config.
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MCP_CONFIG_PATH` | Path to config file | (none) |
-| `MCP_DEBUG` | Enable debug output | `false` |
-| `NO_COLOR` | Disable colored output | (unset) |
-| `MCP_TIMEOUT` | Request timeout (seconds) | `1800` (30 min) |
-| `MCP_CONCURRENCY` | Servers processed in parallel (not a limit on total) | `5` |
-| `MCP_MAX_RETRIES` | Retry attempts for transient errors (0 = disable) | `3` |
-| `MCP_RETRY_DELAY` | Base retry delay (milliseconds) | `1000` |
-| `MCP_STRICT_ENV` | Error on missing `${VAR}` in config | `true` |
-| `MCP_NO_DAEMON` | Disable connection caching (force fresh connections) | `false` |
-| `MCP_DAEMON_TIMEOUT` | Idle timeout for cached connections (seconds) | `60` |
+| Variable             | Description                                          | Default         |
+| -------------------- | ---------------------------------------------------- | --------------- |
+| `MCP_CONFIG_PATH`    | Path to config file                                  | (none)          |
+| `MCP_DEBUG`          | Enable debug output                                  | `false`         |
+| `NO_COLOR`           | Disable colored output                               | (unset)         |
+| `MCP_TIMEOUT`        | Request timeout (seconds)                            | `1800` (30 min) |
+| `MCP_CONCURRENCY`    | Servers processed in parallel (not a limit on total) | `5`             |
+| `MCP_MAX_RETRIES`    | Retry attempts for transient errors (0 = disable)    | `3`             |
+| `MCP_RETRY_DELAY`    | Base retry delay (milliseconds)                      | `1000`          |
+| `MCP_STRICT_ENV`     | Error on missing `${VAR}` in config                  | `true`          |
+| `MCP_NO_DAEMON`      | Disable connection caching (force fresh connections) | `false`         |
+| `MCP_DAEMON_TIMEOUT` | Idle timeout for cached connections (seconds)        | `60`            |
 
 ## Using with AI Agents
 
@@ -426,7 +424,7 @@ Commands:
 
 ```bash
 mcp-cli info                        # List all servers
-mcp-cli info <server>               # Show server tools  
+mcp-cli info <server>               # Show server tools
 mcp-cli info <server> <tool>        # Get tool schema
 mcp-cli grep "<pattern>"            # Search tools
 mcp-cli call <server> <tool>        # Call tool (stdin auto-detected)
@@ -471,7 +469,7 @@ EOF
 
 For Code Agents that support Agents Skills, like Gemini CLI, OpenCode or Claude Code. you can use the mcp-cli skill to interface with MCP servers. The Skill is available at [SKILL.md](./SKILL.md)
 
-Create `mcp-cli/SKILL.md` in your skills directory. 
+Create `mcp-cli/SKILL.md` in your skills directory.
 
 ## Architecture
 
@@ -507,12 +505,14 @@ By default, the CLI uses **lazy-spawn connection pooling** to avoid repeated MCP
 ```
 
 **Key features:**
+
 - **Automatic**: No manual start/stop needed
 - **Per-server**: Each MCP server gets its own daemon
 - **Stale detection**: Config changes trigger re-spawn
 - **Fast fallback**: 5s spawn timeout, then direct connection; daemon IPC calls use `MCP_TIMEOUT`
 
 **Control via environment:**
+
 ```bash
 MCP_NO_DAEMON=1 mcp-cli info      # Force fresh connection
 MCP_DAEMON_TIMEOUT=120 mcp-cli    # 2 minute idle timeout
@@ -553,28 +553,28 @@ When daemon is disabled (`MCP_NO_DAEMON=1`), the CLI uses a **lazy, on-demand co
 
 **When are servers connected?**
 
-| Command | Servers Connected |
-|---------|-------------------|
-| `mcp-cli info` | All N servers in parallel |
-| `mcp-cli grep "*pattern*"` | All N servers in parallel |
-| `mcp-cli info <server>` | Only the specified server |
-| `mcp-cli info <server> <tool>` | Only the specified server |
+| Command                             | Servers Connected         |
+| ----------------------------------- | ------------------------- |
+| `mcp-cli info`                      | All N servers in parallel |
+| `mcp-cli grep "*pattern*"`          | All N servers in parallel |
+| `mcp-cli info <server>`             | Only the specified server |
+| `mcp-cli info <server> <tool>`      | Only the specified server |
 | `mcp-cli call <server> <tool> '{}'` | Only the specified server |
-
 
 ### Error Handling & Retry
 
 The CLI includes **automatic retry with exponential backoff** for transient failures.
 
 **Transient errors (auto-retried):**
+
 - Network: `ECONNREFUSED`, `ETIMEDOUT`, `ECONNRESET`
 - HTTP: `502`, `503`, `504`, `429`
 
 **Non-transient errors (fail immediately):**
+
 - Config: Invalid JSON, missing fields
 - Auth: `401`, `403`
 - Tool: Validation errors, not found
-
 
 ## Development
 

@@ -9,6 +9,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { $ } from 'bun';
 
 describe('CLI Integration Tests', () => {
@@ -60,8 +61,7 @@ describe('CLI Integration Tests', () => {
 
     try {
       // Disable daemon for tests for deterministic behavior
-      const result =
-        await $`MCP_NO_DAEMON=1 bun run ${cliPath} -c ${configPath} ${args}`.nothrow();
+      const result = await $`MCP_NO_DAEMON=1 bun run ${cliPath} -c ${configPath} ${args}`.nothrow();
       return {
         stdout: result.stdout.toString(),
         stderr: result.stderr.toString(),
@@ -116,7 +116,6 @@ describe('CLI Integration Tests', () => {
       // Descriptions should be present (checking for common patterns)
       expect(result.stdout.length).toBeGreaterThan(100);
     });
-
   });
 
   describe('grep command', () => {
@@ -134,7 +133,6 @@ describe('CLI Integration Tests', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('filesystem');
     });
-
 
     test('shows message for no matches', async () => {
       const result = await runCli(['grep', '*nonexistent_xyz_123*']);
@@ -156,7 +154,6 @@ describe('CLI Integration Tests', () => {
       expect(result.stdout).toContain('Tools');
     });
 
-
     test('errors on unknown server', async () => {
       const result = await runCli(['info', 'nonexistent_server']);
 
@@ -176,7 +173,6 @@ describe('CLI Integration Tests', () => {
       expect(result.stdout).toContain('filesystem');
       expect(result.stdout).toContain('Input Schema:');
     });
-
 
     test('errors on unknown tool', async () => {
       const result = await runCli(['info', 'filesystem', 'nonexistent_tool']);
@@ -211,7 +207,6 @@ describe('CLI Integration Tests', () => {
       expect(result.stdout).toContain('test.txt');
       expect(result.stdout).toContain('subdir');
     });
-
 
     test('handles tool errors gracefully', async () => {
       const result = await runCli([
@@ -268,8 +263,7 @@ describe('CLI Integration Tests', () => {
   describe('error handling', () => {
     test('handles missing config gracefully', async () => {
       const cliPath = join(import.meta.dir, '..', '..', 'src', 'index.ts');
-      const result =
-        await $`bun run ${cliPath} -c /nonexistent/config.json`.nothrow();
+      const result = await $`bun run ${cliPath} -c /nonexistent/config.json`.nothrow();
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr.toString()).toContain('not found');
@@ -325,8 +319,7 @@ describe('HTTP Transport Integration Tests', () => {
 
     try {
       // Disable daemon for tests
-      const result =
-        await $`MCP_NO_DAEMON=1 bun run ${cliPath} -c ${configPath} ${args}`.nothrow();
+      const result = await $`MCP_NO_DAEMON=1 bun run ${cliPath} -c ${configPath} ${args}`.nothrow();
       return {
         stdout: result.stdout.toString(),
         stderr: result.stderr.toString(),
@@ -348,7 +341,6 @@ describe('HTTP Transport Integration Tests', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('deepwiki');
     });
-
   });
 
   describe('info command with HTTP server', () => {
@@ -361,7 +353,6 @@ describe('HTTP Transport Integration Tests', () => {
       expect(result.stdout).toContain('Transport:');
       expect(result.stdout).toContain('HTTP');
     });
-
   });
 
   describe('grep command with HTTP server', () => {

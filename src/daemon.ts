@@ -5,20 +5,10 @@
  * It maintains the MCP server connection and forwards requests from CLI invocations.
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import {
-  type ConnectedClient,
-  callTool,
-  connectToServer,
-  listTools,
-} from './client.js';
+
+import { type ConnectedClient, callTool, connectToServer, listTools } from './client.js';
 import {
   type ServerConfig,
   debug,
@@ -158,7 +148,7 @@ export async function runDaemon(
   serverName: string,
   config: ServerConfig,
   namespace = serverName,
-  configPath?: string,
+  configPath?: string
 ): Promise<void> {
   const socketPath = getSocketPath(namespace);
   const configHash = getConfigHash(config);
@@ -256,10 +246,7 @@ export async function runDaemon(
     mcpClient = await connectToServer(serverName, config, configPath);
     debug(`[daemon:${serverName}] Connected to MCP server`);
   } catch (error) {
-    console.error(
-      `[daemon:${serverName}] Failed to connect:`,
-      (error as Error).message,
-    );
+    console.error(`[daemon:${serverName}] Failed to connect:`, (error as Error).message);
     await cleanup();
     process.exit(1);
   }
@@ -307,11 +294,7 @@ export async function runDaemon(
               error: { code: 'MISSING_TOOL', message: 'toolName required' },
             };
           }
-          const result = await callTool(
-            mcpClient.client,
-            request.toolName,
-            request.args ?? {},
-          );
+          const result = await callTool(mcpClient.client, request.toolName, request.args ?? {});
           return { id: request.id, success: true, data: result };
         }
 
@@ -344,9 +327,7 @@ export async function runDaemon(
         id: request.id,
         success: false,
         error: {
-          code: String(
-            (err as Error & { code?: unknown }).code ?? 'EXECUTION_ERROR',
-          ),
+          code: String((err as Error & { code?: unknown }).code ?? 'EXECUTION_ERROR'),
           message: err.message,
         },
       };
@@ -387,7 +368,7 @@ export async function runDaemon(
   } catch (error) {
     console.error(
       `[daemon:${serverName}] Failed to start socket server:`,
-      (error as Error).message,
+      (error as Error).message
     );
     await cleanup();
     process.exit(1);
@@ -405,9 +386,7 @@ if (process.argv[2] === '--daemon') {
   const configPath = process.argv[5];
 
   if (!serverName) {
-    console.error(
-      'Usage: daemon.ts --daemon <serverName> [namespace] [configPath] < configJson',
-    );
+    console.error('Usage: daemon.ts --daemon <serverName> [namespace] [configPath] < configJson');
     process.exit(1);
   }
 

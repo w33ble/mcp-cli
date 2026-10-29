@@ -7,6 +7,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+
 import {
   type HttpServerConfig,
   type ServerConfig,
@@ -21,10 +22,7 @@ import {
   isHttpServer,
   isToolAllowed,
 } from './config.js';
-import {
-  cleanupOrphanedDaemons,
-  getDaemonConnection,
-} from './daemon-client.js';
+import { cleanupOrphanedDaemons, getDaemonConnection } from './daemon-client.js';
 import {
   createNonInteractiveOAuthProvider,
   normalizeMissingOAuthCredentialsError,
@@ -44,10 +42,7 @@ export interface ConnectedClient {
  */
 export interface McpConnection {
   listTools: () => Promise<ToolInfo[]>;
-  callTool: (
-    toolName: string,
-    args: Record<string, unknown>,
-  ) => Promise<unknown>;
+  callTool: (toolName: string, args: Record<string, unknown>) => Promise<unknown>;
   getInstructions: () => Promise<string | undefined>;
   close: () => Promise<void>;
   isDaemon: boolean;
@@ -123,11 +118,10 @@ export function isTransientError(error: Error): boolean {
   // HTTP transient errors - require status code at start or with HTTP context
   // Pattern: "502", "502 Bad Gateway", "HTTP 502", "status 502", "status code 502"
   if (/^(502|503|504|429)\b/.test(message)) return true;
-  if (/\b(http|status(\s+code)?)\s*(502|503|504|429)\b/i.test(message))
-    return true;
+  if (/\b(http|status(\s+code)?)\s*(502|503|504|429)\b/i.test(message)) return true;
   if (
     /\b(502|503|504|429)\s+(bad gateway|service unavailable|gateway timeout|too many requests)/i.test(
-      message,
+      message
     )
   )
     return true;
@@ -165,7 +159,7 @@ function sleep(ms: number): Promise<void> {
 async function withRetry<T>(
   fn: () => Promise<T>,
   operationName: string,
-  config: RetryConfig = getRetryConfig(),
+  config: RetryConfig = getRetryConfig()
 ): Promise<T> {
   let lastError: Error | undefined;
   const startTime = Date.now();
@@ -185,17 +179,12 @@ async function withRetry<T>(
 
       const remainingBudget = config.totalBudgetMs - (Date.now() - startTime);
       const shouldRetry =
-        attempt < config.maxRetries &&
-        isTransientError(lastError) &&
-        remainingBudget > 1000; // At least 1s remaining
+        attempt < config.maxRetries && isTransientError(lastError) && remainingBudget > 1000; // At least 1s remaining
 
       if (shouldRetry) {
-        const delay = Math.min(
-          calculateDelay(attempt, config),
-          remainingBudget - 1000,
-        );
+        const delay = Math.min(calculateDelay(attempt, config), remainingBudget - 1000);
         debug(
-          `${operationName} failed (attempt ${attempt + 1}/${config.maxRetries + 1}): ${lastError.message}. Retrying in ${delay}ms...`,
+          `${operationName} failed (attempt ${attempt + 1}/${config.maxRetries + 1}): ${lastError.message}. Retrying in ${delay}ms...`
         );
         await sleep(delay);
       } else {
@@ -225,7 +214,7 @@ export async function safeClose(close: () => Promise<void>): Promise<void> {
 export async function connectToServer(
   serverName: string,
   config: ServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<ConnectedClient> {
   // Collect stderr for better error messages
   const stderrChunks: string[] = [];
@@ -238,7 +227,7 @@ export async function connectToServer(
       },
       {
         capabilities: {},
-      },
+      }
     );
 
     let transport: StdioClientTransport | StreamableHTTPClientTransport;
@@ -246,15 +235,11 @@ export async function connectToServer(
     let hasAuthorizationHeader = false;
 
     if (isHttpServer(config)) {
-      const httpTransport = await createHttpTransport(
-        serverName,
-        config,
-        configPath,
-      );
+      const httpTransport = await createHttpTransport(serverName, config, configPath);
       transport = httpTransport.transport;
       hasOAuthClient = httpTransport.hasOAuthClient;
       hasAuthorizationHeader = Object.keys(config.headers ?? {}).some(
-        (name) => name.toLowerCase() === 'authorization',
+        (name) => name.toLowerCase() === 'authorization'
       );
     } else {
       transport = createStdioTransport(config);
@@ -286,7 +271,7 @@ export async function connectToServer(
           error,
           serverName,
           hasOAuthClient,
-          hasAuthorizationHeader,
+          hasAuthorizationHeader
         );
       }
       throw error;
@@ -316,7 +301,7 @@ export async function connectToServer(
  */
 export function createConfiguredFetch(
   resourceUrl: URL,
-  headers: Record<string, string> | undefined,
+  headers: Record<string, string> | undefined
 ): FetchLike {
   return async (input, init) => {
     let requestUrl = new URL(input);
@@ -349,17 +334,13 @@ export function createConfiguredFetch(
 async function createHttpTransport(
   serverName: string,
   config: HttpServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<{
   transport: StreamableHTTPClientTransport;
   hasOAuthClient: boolean;
 }> {
   const url = new URL(config.url);
-  const authProvider = await createNonInteractiveOAuthProvider(
-    serverName,
-    config,
-    configPath,
-  );
+  const authProvider = await createNonInteractiveOAuthProvider(serverName, config, configPath);
 
   return {
     transport: new StreamableHTTPClientTransport(url, {
@@ -412,10 +393,7 @@ export async function listTools(client: Client): Promise<ToolInfo[]> {
 /**
  * Get a specific tool by name
  */
-export async function getTool(
-  client: Client,
-  toolName: string,
-): Promise<ToolInfo | undefined> {
+export async function getTool(client: Client, toolName: string): Promise<ToolInfo | undefined> {
   const tools = await listTools(client);
   return tools.find((t) => t.name === toolName);
 }
@@ -426,7 +404,7 @@ export async function getTool(
 export async function callTool(
   client: Client,
   toolName: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   return withRetry(async () => {
     const result = await client.callTool(
@@ -435,7 +413,7 @@ export async function callTool(
         arguments: args,
       },
       undefined,
-      { timeout: getTimeoutMs() },
+      { timeout: getTimeoutMs() }
     );
     return result;
   }, `call tool ${toolName}`);
@@ -458,7 +436,7 @@ export async function callTool(
 export async function getConnection(
   serverName: string,
   config: ServerConfig,
-  configPath?: string,
+  configPath?: string
 ): Promise<McpConnection> {
   // Clean up any orphaned daemons on first call
   await cleanupOrphanedDaemons();
@@ -466,11 +444,7 @@ export async function getConnection(
   // Try daemon connection if enabled
   if (isDaemonEnabled()) {
     try {
-      const daemonConn = await getDaemonConnection(
-        serverName,
-        config,
-        configPath,
-      );
+      const daemonConn = await getDaemonConnection(serverName, config, configPath);
       if (daemonConn) {
         debug(`Using daemon connection for ${serverName}`);
         return {
@@ -480,15 +454,10 @@ export async function getConnection(
             // Apply tool filtering from config
             return filterTools(tools, config);
           },
-          async callTool(
-            toolName: string,
-            args: Record<string, unknown>,
-          ): Promise<unknown> {
+          async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
             // Check if tool is allowed before calling
             if (!isToolAllowed(toolName, config)) {
-              throw new Error(
-                `Tool "${toolName}" is disabled by configuration`,
-              );
+              throw new Error(`Tool "${toolName}" is disabled by configuration`);
             }
             return daemonConn.callTool(toolName, args);
           },
@@ -503,18 +472,14 @@ export async function getConnection(
       }
     } catch (err) {
       debug(
-        `Daemon connection failed for ${serverName}: ${(err as Error).message}, falling back to direct`,
+        `Daemon connection failed for ${serverName}: ${(err as Error).message}, falling back to direct`
       );
     }
   }
 
   // Fall back to direct connection
   debug(`Using direct connection for ${serverName}`);
-  const { client, close } = await connectToServer(
-    serverName,
-    config,
-    configPath,
-  );
+  const { client, close } = await connectToServer(serverName, config, configPath);
 
   return {
     async listTools(): Promise<ToolInfo[]> {
@@ -522,10 +487,7 @@ export async function getConnection(
       // Apply tool filtering from config
       return filterTools(tools, config);
     },
-    async callTool(
-      toolName: string,
-      args: Record<string, unknown>,
-    ): Promise<unknown> {
+    async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
       // Check if tool is allowed before calling
       if (!isToolAllowed(toolName, config)) {
         throw new Error(`Tool "${toolName}" is disabled by configuration`);

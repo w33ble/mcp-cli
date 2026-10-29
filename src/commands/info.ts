@@ -9,12 +9,7 @@ import {
   getServerConfig,
   loadConfig,
 } from '../config.js';
-import {
-  ErrorCode,
-  formatCliError,
-  serverConnectionError,
-  toolNotFoundError,
-} from '../errors.js';
+import { ErrorCode, formatCliError, serverConnectionError, toolNotFoundError } from '../errors.js';
 import { formatServerDetails, formatToolSchema } from '../output.js';
 
 export interface InfoOptions {
@@ -60,21 +55,13 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
   let connection: McpConnection;
 
   try {
-    connection = await getConnection(
-      serverName,
-      serverConfig,
-      config.configPath,
-    );
+    connection = await getConnection(serverName, serverConfig, config.configPath);
   } catch (error) {
     if ((error as { code?: ErrorCode }).code === ErrorCode.AUTH_ERROR) {
       console.error((error as Error).message);
       process.exit(ErrorCode.AUTH_ERROR);
     }
-    console.error(
-      formatCliError(
-        serverConnectionError(serverName, (error as Error).message),
-      ),
-    );
+    console.error(formatCliError(serverConnectionError(serverName, (error as Error).message)));
     process.exit(ErrorCode.NETWORK_ERROR);
   }
 
@@ -86,11 +73,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
 
       if (!tool) {
         const availableTools = tools.map((t) => t.name);
-        console.error(
-          formatCliError(
-            toolNotFoundError(toolName, serverName, availableTools),
-          ),
-        );
+        console.error(formatCliError(toolNotFoundError(toolName, serverName, availableTools)));
         process.exit(ErrorCode.CLIENT_ERROR);
       }
 
@@ -103,13 +86,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
 
       // Human-readable output
       console.log(
-        formatServerDetails(
-          serverName,
-          serverConfig,
-          tools,
-          options.withDescriptions,
-          instructions,
-        ),
+        formatServerDetails(serverName, serverConfig, tools, options.withDescriptions, instructions)
       );
     }
   } catch (error) {

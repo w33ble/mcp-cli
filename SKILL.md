@@ -9,17 +9,17 @@ Access MCP servers through the command line. MCP enables interaction with extern
 
 ## Commands
 
-| Command | Output |
-|---------|--------|
-| `mcp-cli` | List all servers and tools |
-| `mcp-cli info <server>` | Show server tools and parameters |
-| `mcp-cli info <server> <tool>` | Get tool JSON schema |
-| `mcp-cli grep "<pattern>"` | Search tools by name |
-| `mcp-cli call <server> <tool>` | Call tool (reads JSON from stdin if no args) |
-| `mcp-cli call <server> <tool> '<json>'` | Call tool with arguments |
-| `mcp-cli auth login <server>` | Start OAuth login for an HTTP server |
-| `mcp-cli auth status <server>` | Check stored OAuth credentials |
-| `mcp-cli auth logout <server>` | Remove stored OAuth credentials |
+| Command                                 | Output                                       |
+| --------------------------------------- | -------------------------------------------- |
+| `mcp-cli`                               | List all servers and tools                   |
+| `mcp-cli info <server>`                 | Show server tools and parameters             |
+| `mcp-cli info <server> <tool>`          | Get tool JSON schema                         |
+| `mcp-cli grep "<pattern>"`              | Search tools by name                         |
+| `mcp-cli call <server> <tool>`          | Call tool (reads JSON from stdin if no args) |
+| `mcp-cli call <server> <tool> '<json>'` | Call tool with arguments                     |
+| `mcp-cli auth login <server>`           | Start OAuth login for an HTTP server         |
+| `mcp-cli auth status <server>`          | Check stored OAuth credentials               |
+| `mcp-cli auth logout <server>`          | Remove stored OAuth credentials              |
 
 **Both formats work:** `<server> <tool>` or `<server>/<tool>`
 
@@ -63,7 +63,7 @@ mcp-cli -c ~/.config/mcp/mcp_servers.json auth status notion
 # List all servers
 mcp-cli
 
-# With descriptions  
+# With descriptions
 mcp-cli -d
 
 # See server tools
@@ -117,10 +117,10 @@ mcp-cli call github get_file_contents '{"owner": "x", "repo": "y", "path": "z"}'
 
 ## Options
 
-| Flag | Purpose |
-|------|---------|
-| `-d` | Include descriptions |
-| `-c <path>` | Specify config file |
+| Flag        | Purpose              |
+| ----------- | -------------------- |
+| `-d`        | Include descriptions |
+| `-c <path>` | Specify config file  |
 | `--version` | Show the CLI version |
 
 The config search order is:
@@ -134,29 +134,29 @@ An existing local `./mcp_servers.json` takes precedence over the home config.
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MCP_CONFIG_PATH` | Path to config file | (none) |
-| `MCP_DEBUG` | Enable debug output | `false` |
-| `NO_COLOR` | Disable colored output | (unset) |
-| `MCP_TIMEOUT` | Request timeout in seconds | `1800` (30 min) |
-| `MCP_CONCURRENCY` | Servers processed in parallel | `5` |
-| `MCP_MAX_RETRIES` | Retry attempts for transient errors (`0` disables retries) | `3` |
-| `MCP_RETRY_DELAY` | Base retry delay in milliseconds | `1000` |
-| `MCP_STRICT_ENV` | Error on missing `${VAR}` references in config | `true` |
-| `MCP_NO_DAEMON` | Disable connection caching | `false` |
-| `MCP_DAEMON_TIMEOUT` | Idle timeout for cached connections in seconds | `60` |
+| Variable             | Description                                                | Default         |
+| -------------------- | ---------------------------------------------------------- | --------------- |
+| `MCP_CONFIG_PATH`    | Path to config file                                        | (none)          |
+| `MCP_DEBUG`          | Enable debug output                                        | `false`         |
+| `NO_COLOR`           | Disable colored output                                     | (unset)         |
+| `MCP_TIMEOUT`        | Request timeout in seconds                                 | `1800` (30 min) |
+| `MCP_CONCURRENCY`    | Servers processed in parallel                              | `5`             |
+| `MCP_MAX_RETRIES`    | Retry attempts for transient errors (`0` disables retries) | `3`             |
+| `MCP_RETRY_DELAY`    | Base retry delay in milliseconds                           | `1000`          |
+| `MCP_STRICT_ENV`     | Error on missing `${VAR}` references in config             | `true`          |
+| `MCP_NO_DAEMON`      | Disable connection caching                                 | `false`         |
+| `MCP_DAEMON_TIMEOUT` | Idle timeout for cached connections in seconds             | `60`            |
 
 ## Common Errors
 
-| Wrong Command | Error | Fix |
-|---------------|-------|-----|
-| `mcp-cli server tool` | AMBIGUOUS_COMMAND | Use `call server tool` or `info server tool` |
-| `mcp-cli run server tool` | UNKNOWN_SUBCOMMAND | Use `call` instead of `run` |
-| `mcp-cli list` | UNKNOWN_SUBCOMMAND | Use `info` instead of `list` |
-| `mcp-cli call server` | MISSING_ARGUMENT | Add tool name |
-| `mcp-cli call server tool {bad}` | INVALID_JSON | Use valid JSON with quotes |
-| `mcp-cli info server` (HTTP) | AUTH_ERROR | Run `mcp-cli auth login server` and show the URL to the user |
+| Wrong Command                    | Error              | Fix                                                          |
+| -------------------------------- | ------------------ | ------------------------------------------------------------ |
+| `mcp-cli server tool`            | AMBIGUOUS_COMMAND  | Use `call server tool` or `info server tool`                 |
+| `mcp-cli run server tool`        | UNKNOWN_SUBCOMMAND | Use `call` instead of `run`                                  |
+| `mcp-cli list`                   | UNKNOWN_SUBCOMMAND | Use `info` instead of `list`                                 |
+| `mcp-cli call server`            | MISSING_ARGUMENT   | Add tool name                                                |
+| `mcp-cli call server tool {bad}` | INVALID_JSON       | Use valid JSON with quotes                                   |
+| `mcp-cli info server` (HTTP)     | AUTH_ERROR         | Run `mcp-cli auth login server` and show the URL to the user |
 
 ## Exit Codes
 

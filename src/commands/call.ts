@@ -7,12 +7,7 @@
  * - Errors always go to stderr
  */
 
-import {
-  type McpConnection,
-  getConnection,
-  getTimeoutMs,
-  safeClose,
-} from '../client.js';
+import { type McpConnection, getConnection, getTimeoutMs, safeClose } from '../client.js';
 import {
   type McpServersConfig,
   type ServerConfig,
@@ -53,9 +48,7 @@ function parseTarget(target: string): { server: string; tool: string } {
 /**
  * Parse JSON arguments from string or stdin
  */
-async function parseArgs(
-  argsString?: string,
-): Promise<Record<string, unknown>> {
+async function parseArgs(argsString?: string): Promise<Record<string, unknown>> {
   let jsonString: string;
 
   if (argsString) {
@@ -76,7 +69,7 @@ async function parseArgs(
     const timeoutPromise = new Promise<string>((_, reject) => {
       timeoutId = setTimeout(
         () => reject(new Error(`stdin read timed out after ${timeoutMs}ms`)),
-        timeoutMs,
+        timeoutMs
       );
     });
 
@@ -97,9 +90,7 @@ async function parseArgs(
   try {
     return JSON.parse(jsonString);
   } catch (e) {
-    throw new Error(
-      formatCliError(invalidJsonArgsError(jsonString, (e as Error).message)),
-    );
+    throw new Error(formatCliError(invalidJsonArgsError(jsonString, (e as Error).message)));
   }
 }
 
@@ -147,21 +138,13 @@ export async function callCommand(options: CallOptions): Promise<void> {
   let connection: McpConnection;
 
   try {
-    connection = await getConnection(
-      serverName,
-      serverConfig,
-      config.configPath,
-    );
+    connection = await getConnection(serverName, serverConfig, config.configPath);
   } catch (error) {
     if ((error as { code?: ErrorCode }).code === ErrorCode.AUTH_ERROR) {
       console.error((error as Error).message);
       process.exit(ErrorCode.AUTH_ERROR);
     }
-    console.error(
-      formatCliError(
-        serverConnectionError(serverName, (error as Error).message),
-      ),
-    );
+    console.error(formatCliError(serverConnectionError(serverName, (error as Error).message)));
     process.exit(ErrorCode.NETWORK_ERROR);
   }
 
@@ -188,13 +171,9 @@ export async function callCommand(options: CallOptions): Promise<void> {
     const errMsg = (error as Error).message;
     // Check if it's a "tool not found" type error
     if (errMsg.includes('not found') || errMsg.includes('unknown tool')) {
-      console.error(
-        formatCliError(toolNotFoundError(toolName, serverName, availableTools)),
-      );
+      console.error(formatCliError(toolNotFoundError(toolName, serverName, availableTools)));
     } else {
-      console.error(
-        formatCliError(toolExecutionError(toolName, serverName, errMsg)),
-      );
+      console.error(formatCliError(toolExecutionError(toolName, serverName, errMsg)));
     }
     process.exit(ErrorCode.SERVER_ERROR);
   } finally {

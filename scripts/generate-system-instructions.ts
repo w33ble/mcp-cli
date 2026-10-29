@@ -1,17 +1,22 @@
 #!/usr/bin/env bun
 /**
  * Example: Generate System Instructions
- * 
+ *
  * This script generates a system prompt snippet containing all available
  * MCP servers with their instructions and tools.
- * 
+ *
  * Usage:
  *   bun run scripts/generate-system-instructions.ts
  *   bun run scripts/generate-system-instructions.ts -c /path/to/config.json
  */
 
 import { getConnection, safeClose, type McpConnection } from '../src/client.js';
-import { loadConfig, listServerNames, getServerConfig, type McpServersConfig } from '../src/config.js';
+import {
+  loadConfig,
+  listServerNames,
+  getServerConfig,
+  type McpServersConfig,
+} from '../src/config.js';
 
 interface ServerInfo {
   name: string;
@@ -32,7 +37,7 @@ async function fetchServerInfo(serverName: string, config: McpServersConfig): Pr
     return {
       name: serverName,
       instructions,
-      tools: tools.map(t => t.name),
+      tools: tools.map((t) => t.name),
     };
   } catch (error) {
     return {
@@ -103,9 +108,7 @@ async function main() {
     console.error(`Fetching info from ${serverNames.length} servers...`);
 
     // Fetch all servers in parallel
-    const servers = await Promise.all(
-      serverNames.map(name => fetchServerInfo(name, config))
-    );
+    const servers = await Promise.all(serverNames.map((name) => fetchServerInfo(name, config)));
 
     // Sort alphabetically
     servers.sort((a, b) => a.name.localeCompare(b.name));
@@ -114,7 +117,6 @@ async function main() {
     console.log(formatSystemInstructions(servers));
 
     process.exit(0);
-
   } catch (error) {
     console.error(`Error: ${(error as Error).message}`);
     process.exit(1);

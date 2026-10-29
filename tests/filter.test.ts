@@ -3,6 +3,7 @@
  */
 
 import { describe, test, expect } from 'bun:test';
+
 import { filterTools, isToolAllowed } from '../src/config.js';
 
 describe('Tool Filtering', () => {
@@ -28,8 +29,8 @@ describe('Tool Filtering', () => {
       };
       const result = filterTools(sampleTools, config);
       expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toContain('read_file');
-      expect(result.map(t => t.name)).toContain('list_directory');
+      expect(result.map((t) => t.name)).toContain('read_file');
+      expect(result.map((t) => t.name)).toContain('list_directory');
     });
 
     test('filters to only allowed tools (wildcard)', () => {
@@ -39,10 +40,10 @@ describe('Tool Filtering', () => {
       };
       const result = filterTools(sampleTools, config);
       expect(result).toHaveLength(4);
-      expect(result.map(t => t.name)).toContain('read_file');
-      expect(result.map(t => t.name)).toContain('write_file');
-      expect(result.map(t => t.name)).toContain('delete_file');
-      expect(result.map(t => t.name)).toContain('search_files');
+      expect(result.map((t) => t.name)).toContain('read_file');
+      expect(result.map((t) => t.name)).toContain('write_file');
+      expect(result.map((t) => t.name)).toContain('delete_file');
+      expect(result.map((t) => t.name)).toContain('search_files');
     });
 
     test('filters to only allowed tools (prefix wildcard)', () => {
@@ -62,7 +63,7 @@ describe('Tool Filtering', () => {
       };
       const result = filterTools(sampleTools, config);
       expect(result).toHaveLength(4);
-      expect(result.map(t => t.name)).not.toContain('delete_file');
+      expect(result.map((t) => t.name)).not.toContain('delete_file');
     });
 
     test('excludes disabled tools (wildcard)', () => {
@@ -72,8 +73,8 @@ describe('Tool Filtering', () => {
       };
       const result = filterTools(sampleTools, config);
       expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toContain('list_directory');
-      expect(result.map(t => t.name)).toContain('search_files');
+      expect(result.map((t) => t.name)).toContain('list_directory');
+      expect(result.map((t) => t.name)).toContain('search_files');
     });
 
     test('disabledTools takes precedence over allowedTools', () => {
@@ -84,10 +85,10 @@ describe('Tool Filtering', () => {
       };
       const result = filterTools(sampleTools, config);
       expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toContain('read_file');
-      expect(result.map(t => t.name)).toContain('search_files');
-      expect(result.map(t => t.name)).not.toContain('write_file');
-      expect(result.map(t => t.name)).not.toContain('delete_file');
+      expect(result.map((t) => t.name)).toContain('read_file');
+      expect(result.map((t) => t.name)).toContain('search_files');
+      expect(result.map((t) => t.name)).not.toContain('write_file');
+      expect(result.map((t) => t.name)).not.toContain('delete_file');
     });
 
     test('combines allowedTools and disabledTools', () => {
@@ -98,8 +99,8 @@ describe('Tool Filtering', () => {
       };
       const result = filterTools(sampleTools, config);
       expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toContain('read_file');
-      expect(result.map(t => t.name)).toContain('write_file');
+      expect(result.map((t) => t.name)).toContain('read_file');
+      expect(result.map((t) => t.name)).toContain('write_file');
     });
 
     test('pattern matching is case-insensitive', () => {
@@ -113,19 +114,15 @@ describe('Tool Filtering', () => {
     });
 
     test('supports ? wildcard for single character', () => {
-      const tools = [
-        { name: 'file1' },
-        { name: 'file2' },
-        { name: 'file10' },
-      ];
+      const tools = [{ name: 'file1' }, { name: 'file2' }, { name: 'file10' }];
       const config = {
         command: 'test',
         allowedTools: ['file?'],
       };
       const result = filterTools(tools, config);
       expect(result).toHaveLength(2);
-      expect(result.map(t => t.name)).toContain('file1');
-      expect(result.map(t => t.name)).toContain('file2');
+      expect(result.map((t) => t.name)).toContain('file1');
+      expect(result.map((t) => t.name)).toContain('file2');
     });
   });
 

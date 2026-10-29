@@ -1,6 +1,6 @@
 /**
  * Integration tests for CLI error handling
- * 
+ *
  * Tests the 22 LLM error cases from the implementation plan
  * by invoking the actual CLI with wrong/confusing arguments.
  */
@@ -9,6 +9,7 @@ import { describe, test, expect } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { $ } from 'bun';
 
 describe('CLI Error Handling Tests', () => {
@@ -192,17 +193,11 @@ describe('CLI Error Handling Tests', () => {
         configPath,
         JSON.stringify({
           mcpServers: { protected: { url: `http://127.0.0.1:${server.port}` } },
-        }),
+        })
       );
 
       try {
-        const result = await runCli([
-          '-c',
-          configPath,
-          'call',
-          'protected/tool',
-          '{}',
-        ]);
+        const result = await runCli(['-c', configPath, 'call', 'protected/tool', '{}']);
         expect(result.exitCode).toBe(4);
         expect(result.stderr).toContain('mcp-cli auth login protected');
       } finally {

@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+
 import {
   ErrorCode,
   configInvalidJsonError,
@@ -95,10 +96,7 @@ function matchesAnyPattern(name: string, patterns: string[]): boolean {
  * @param config - Server config with optional allowedTools/disabledTools
  * @returns Filtered array of tools
  */
-export function filterTools<T extends { name: string }>(
-  tools: T[],
-  config: ServerConfig,
-): T[] {
+export function filterTools<T extends { name: string }>(tools: T[], config: ServerConfig): T[] {
   const { allowedTools, disabledTools } = config;
 
   return tools.filter((tool) => {
@@ -155,9 +153,7 @@ export function isHttpServer(config: ServerConfig): config is HttpServerConfig {
 /**
  * Check if a server config is stdio-based
  */
-export function isStdioServer(
-  config: ServerConfig,
-): config is StdioServerConfig {
+export function isStdioServer(config: ServerConfig): config is StdioServerConfig {
   return 'command' in config;
 }
 
@@ -300,7 +296,7 @@ export function getPidPath(serverName: string): string {
 export function getCredentialIdentity(
   configPath: string,
   serverName: string,
-  endpoint: string,
+  endpoint: string
 ): string {
   const url = new URL(endpoint);
   url.hash = '';
@@ -328,7 +324,7 @@ function sortConfigValue(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, child]) => [key, sortConfigValue(child)]),
+        .map(([key, child]) => [key, sortConfigValue(child)])
     );
   }
   return value;
@@ -374,7 +370,7 @@ function substituteEnvVars(value: string): string {
           message: message,
           details: 'Referenced in config but not set in environment',
           suggestion: `Set the variable(s) before running: export ${missingVars[0]}="value" or set MCP_STRICT_ENV=false to use empty values`,
-        }),
+        })
       );
     }
     // Non-strict mode: warn but continue
@@ -424,9 +420,7 @@ function getDefaultConfigPaths(): string[] {
 /**
  * Load and parse MCP servers configuration
  */
-export async function loadConfig(
-  explicitPath?: string,
-): Promise<McpServersConfig> {
+export async function loadConfig(explicitPath?: string): Promise<McpServersConfig> {
   let configPath: string | undefined;
 
   // Check explicit path from argument or environment
@@ -464,9 +458,7 @@ export async function loadConfig(
   try {
     config = JSON.parse(content);
   } catch (e) {
-    throw new Error(
-      formatCliError(configInvalidJsonError(configPath, (e as Error).message)),
-    );
+    throw new Error(formatCliError(configInvalidJsonError(configPath, (e as Error).message)));
   }
 
   // Validate structure
@@ -477,7 +469,7 @@ export async function loadConfig(
   // Warn if no servers are configured
   if (Object.keys(config.mcpServers).length === 0) {
     console.error(
-      '[mcp-cli] Warning: No servers configured in mcpServers. Add server configurations to use MCP tools.',
+      '[mcp-cli] Warning: No servers configured in mcpServers. Add server configurations to use MCP tools.'
     );
   }
 
@@ -491,7 +483,7 @@ export async function loadConfig(
           message: `Invalid server configuration for "${serverName}"`,
           details: 'Server config must be an object',
           suggestion: `Use { "command": "..." } for stdio or { "url": "..." } for HTTP`,
-        }),
+        })
       );
     }
 
@@ -506,7 +498,7 @@ export async function loadConfig(
           message: `Server "${serverName}" missing required field`,
           details: `Must have either "command" (for stdio) or "url" (for HTTP)`,
           suggestion: `Add "command": "npx ..." for local servers or "url": "https://..." for remote servers`,
-        }),
+        })
       );
     }
 
@@ -516,10 +508,9 @@ export async function loadConfig(
           code: ErrorCode.CLIENT_ERROR,
           type: 'CONFIG_INVALID_SERVER',
           message: `Server "${serverName}" has both "command" and "url"`,
-          details:
-            'A server must be either stdio (command) or HTTP (url), not both',
+          details: 'A server must be either stdio (command) or HTTP (url), not both',
           suggestion: `Remove one of "command" or "url"`,
-        }),
+        })
       );
     }
   }
@@ -534,10 +525,7 @@ export async function loadConfig(
 /**
  * Get a specific server config by name
  */
-export function getServerConfig(
-  config: McpServersConfig,
-  serverName: string,
-): ServerConfig {
+export function getServerConfig(config: McpServersConfig, serverName: string): ServerConfig {
   const server = config.mcpServers[serverName];
   if (!server) {
     const available = Object.keys(config.mcpServers);

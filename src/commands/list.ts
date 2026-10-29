@@ -10,12 +10,7 @@ import {
   getConnection,
   safeClose,
 } from '../client.js';
-import {
-  type McpServersConfig,
-  getServerConfig,
-  listServerNames,
-  loadConfig,
-} from '../config.js';
+import { type McpServersConfig, getServerConfig, listServerNames, loadConfig } from '../config.js';
 import { ErrorCode } from '../errors.js';
 import { formatServerList } from '../output.js';
 
@@ -39,7 +34,7 @@ interface ServerWithTools {
 async function processWithConcurrency<T, R>(
   items: T[],
   processor: (item: T, index: number) => Promise<R>,
-  maxConcurrency: number,
+  maxConcurrency: number
 ): Promise<R[]> {
   const results: R[] = [];
   let currentIndex = 0;
@@ -52,10 +47,7 @@ async function processWithConcurrency<T, R>(
   }
 
   // Start workers up to concurrency limit
-  const workers = Array.from(
-    { length: Math.min(maxConcurrency, items.length) },
-    () => worker(),
-  );
+  const workers = Array.from({ length: Math.min(maxConcurrency, items.length) }, () => worker());
 
   await Promise.all(workers);
   return results;
@@ -66,16 +58,12 @@ async function processWithConcurrency<T, R>(
  */
 async function fetchServerTools(
   serverName: string,
-  config: McpServersConfig,
+  config: McpServersConfig
 ): Promise<ServerWithTools> {
   let connection: McpConnection | null = null;
   try {
     const serverConfig = getServerConfig(config, serverName);
-    connection = await getConnection(
-      serverName,
-      serverConfig,
-      config.configPath,
-    );
+    connection = await getConnection(serverName, serverConfig, config.configPath);
 
     const tools = await connection.listTools();
     const instructions = await connection.getInstructions();
@@ -113,30 +101,24 @@ export async function listCommand(options: ListOptions): Promise<void> {
   const serverNames = listServerNames(config);
 
   if (serverNames.length === 0) {
-    console.error(
-      'Warning: No servers configured. Add servers to mcp_servers.json',
-    );
+    console.error('Warning: No servers configured. Add servers to mcp_servers.json');
     return;
   }
 
   const concurrencyLimit = getConcurrencyLimit();
-  debug(
-    `Processing ${serverNames.length} servers with concurrency ${concurrencyLimit}`,
-  );
+  debug(`Processing ${serverNames.length} servers with concurrency ${concurrencyLimit}`);
 
   // Process servers in parallel with concurrency limit
   const servers = await processWithConcurrency(
     serverNames,
     (name) => fetchServerTools(name, config),
-    concurrencyLimit,
+    concurrencyLimit
   );
 
   // Sort by name to ensure consistent output order
   servers.sort((a, b) => a.name.localeCompare(b.name));
 
-  const authFailure = servers.find(
-    (server) => server.errorCode === ErrorCode.AUTH_ERROR,
-  );
+  const authFailure = servers.find((server) => server.errorCode === ErrorCode.AUTH_ERROR);
   if (authFailure?.error) {
     console.error(authFailure.error);
     process.exit(ErrorCode.AUTH_ERROR);

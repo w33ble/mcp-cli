@@ -38,7 +38,7 @@ function color(text: string, colorCode: string): string {
  */
 export function formatServerList(
   servers: Array<{ name: string; tools: ToolInfo[]; instructions?: string }>,
-  withDescriptions: boolean,
+  withDescriptions: boolean
 ): string {
   const lines: string[] = [];
 
@@ -49,13 +49,8 @@ export function formatServerList(
     if (server.instructions) {
       const instructionLines = server.instructions.split('\n');
       const firstLine = instructionLines[0].slice(0, 100);
-      const suffix =
-        instructionLines.length > 1 || instructionLines[0].length > 100
-          ? '...'
-          : '';
-      lines.push(
-        `  ${color(`Instructions: ${firstLine}${suffix}`, colors.dim)}`,
-      );
+      const suffix = instructionLines.length > 1 || instructionLines[0].length > 100 ? '...' : '';
+      lines.push(`  ${color(`Instructions: ${firstLine}${suffix}`, colors.dim)}`);
     }
 
     for (const tool of server.tools) {
@@ -75,9 +70,7 @@ export function formatServerList(
 /**
  * Format search results
  */
-export function formatSearchResults(
-  results: Array<{ server: string; tool: ToolInfo }>,
-): string {
+export function formatSearchResults(results: Array<{ server: string; tool: ToolInfo }>): string {
   const lines: string[] = [];
 
   for (const result of results) {
@@ -85,9 +78,7 @@ export function formatSearchResults(
     const tool = color(result.tool.name, colors.green);
     // Always show description if available (grep is for discovery)
     if (result.tool.description) {
-      lines.push(
-        `${server} ${tool} ${color(result.tool.description, colors.dim)}`,
-      );
+      lines.push(`${server} ${tool} ${color(result.tool.description, colors.dim)}`);
     } else {
       lines.push(`${server} ${tool}`);
     }
@@ -104,13 +95,11 @@ export function formatServerDetails(
   config: ServerConfig,
   tools: ToolInfo[],
   withDescriptions = false,
-  instructions?: string,
+  instructions?: string
 ): string {
   const lines: string[] = [];
 
-  lines.push(
-    `${color('Server:', colors.bold)} ${color(serverName, colors.cyan)}`,
-  );
+  lines.push(`${color('Server:', colors.bold)} ${color(serverName, colors.cyan)}`);
 
   if (isHttpServer(config)) {
     lines.push(`${color('Transport:', colors.bold)} HTTP`);
@@ -118,7 +107,7 @@ export function formatServerDetails(
   } else {
     lines.push(`${color('Transport:', colors.bold)} stdio`);
     lines.push(
-      `${color('Command:', colors.bold)} ${config.command} ${(config.args || []).join(' ')}`,
+      `${color('Command:', colors.bold)} ${config.command} ${(config.args || []).join(' ')}`
     );
   }
 
@@ -150,12 +139,9 @@ export function formatServerDetails(
     if (schema.properties) {
       lines.push(`    ${color('Parameters:', colors.yellow)}`);
       for (const [name, prop] of Object.entries(schema.properties)) {
-        const required = schema.required?.includes(name)
-          ? 'required'
-          : 'optional';
+        const required = schema.required?.includes(name) ? 'required' : 'optional';
         const type = prop.type || 'any';
-        const desc =
-          withDescriptions && prop.description ? ` - ${prop.description}` : '';
+        const desc = withDescriptions && prop.description ? ` - ${prop.description}` : '';
         lines.push(`      • ${name} (${type}, ${required})${desc}`);
       }
     }
@@ -171,12 +157,8 @@ export function formatServerDetails(
 export function formatToolSchema(serverName: string, tool: ToolInfo): string {
   const lines: string[] = [];
 
-  lines.push(
-    `${color('Tool:', colors.bold)} ${color(tool.name, colors.green)}`,
-  );
-  lines.push(
-    `${color('Server:', colors.bold)} ${color(serverName, colors.cyan)}`,
-  );
+  lines.push(`${color('Tool:', colors.bold)} ${color(tool.name, colors.green)}`);
+  lines.push(`${color('Server:', colors.bold)} ${color(serverName, colors.cyan)}`);
   lines.push('');
 
   if (tool.description) {
@@ -200,9 +182,7 @@ export function formatToolResult(result: unknown): string {
 
     // Handle MCP tool result format
     if (r.content && Array.isArray(r.content)) {
-      const textParts = r.content
-        .filter((c) => c.type === 'text' && c.text)
-        .map((c) => c.text);
+      const textParts = r.content.filter((c) => c.type === 'text' && c.text).map((c) => c.text);
 
       if (textParts.length > 0) {
         return textParts.join('\n');
