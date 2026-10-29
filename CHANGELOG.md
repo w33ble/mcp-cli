@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-29
+
 ### Changed
 
 - Bumped `@modelcontextprotocol/sdk` to 1.32.2
