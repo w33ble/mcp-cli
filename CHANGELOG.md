@@ -12,6 +12,11 @@
 
 - **Requires Bun ~1.4.4** - `engines.bun` pinned (was `>=1.0.0`). Bun 1.4.4 updates its bundled root certificates to NSS 3.131.1, which distrusts the compromised [eMudhra intermediate CAs](https://emudhra.we-have-a-problem.com/). Earlier Bun versions, and binaries compiled with them, still trust those intermediates for HTTPS connections to MCP servers and OAuth endpoints
 - **Daemon no longer leaks config secrets via argv** - Resolved server config (including `${VAR}`-substituted `env`/`headers`) is now passed to the daemon over stdin instead of as a command-line argument, so it no longer shows up in `ps`
+- **Daemon refuses an unsafe socket directory** - `/tmp/mcp-cli-<uid>` must be a real directory owned by the current user with mode `0700`. Previously an existing directory was used as-is, so another local user who pre-created it could swap in their own socket and intercept tool calls. When the check fails, mcp-cli warns and uses direct connections
+
+### Fixed
+
+- Unknown-option errors listed nonexistent `-j/--json` and `-r/--raw` flags; they now list `-c/--config`, `-d/--with-descriptions`, `-h/--help`, and `-v/--version`
 
 ## [0.4.1] - 2026-07-16
 
