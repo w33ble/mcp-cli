@@ -10,5 +10,6 @@
 - Useful env vars: `MCP_TIMEOUT`, `MCP_MAX_RETRIES`, `MCP_RETRY_DELAY`, `MCP_DAEMON_TIMEOUT`, `MCP_DEBUG`.
 - Use Bun scripts: `bun run dev`, `bun run build`, `bun test`, `bun test --timeout 30000 tests/integration`, `bun run typecheck`, `bun run lint`, `bun run lint:fix`, `bun run format`.
 - Biome is the source of truth for style: 2-space indentation, single quotes, semicolons.
-- Integration tests need `npx` and `@modelcontextprotocol/server-filesystem`; they create a temp config and disable the daemon.
+- Integration tests need `npx` and `@modelcontextprotocol/server-filesystem`; they create a temp config and disable the daemon, except `tests/integration/daemon.test.ts`, which exercises a real daemon.
 - Build outputs go to `dist/`; do not treat them as source.
+- After a user-facing change is merged to `main`, record it in `CHANGELOG.md` under `## [Unreleased]` (Keep a Changelog sections: `Added`/`Changed`/`Fixed`/`Security`), as a separate `docs(changelog): ...` commit, not inside the change's commit.
