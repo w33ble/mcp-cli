@@ -1,5 +1,45 @@
 # Changelog
 
+## [Unreleased]
+
+### Security
+
+- **Daemon no longer leaks config secrets via argv** - Resolved server config (including `${VAR}`-substituted `env`/`headers`) is now passed to the daemon over stdin instead of as a command-line argument, so it no longer shows up in `ps`
+
+## [0.4.1] - 2026-07-16
+
+### Fixed
+
+- **Linux arm64 build** - Release workflow now builds the `linux-arm64` binary the install script expects
+
+### Changed
+
+- Repository, install script, and release references point at this fork instead of upstream
+- Release workflow runs on Node 24
+
+## [0.4.0] - 2026-07-16
+
+### Added
+
+- **OAuth for HTTP servers** - Authenticate Streamable HTTP servers with PKCE and a loopback callback
+  - `mcp-cli auth login <server>`: Prints the authorization URL to stderr and waits for the callback
+  - `mcp-cli auth status <server>`: Check stored credentials
+  - `mcp-cli auth logout <server>`: Remove stored credentials
+  - Commands against an unauthenticated server fail with `AUTH_ERROR` and suggest `auth login`
+  - Credentials are stored in the OS secure store, keyed by config path, server name, and URL
+
+### Fixed
+
+- Falls back to a `0600` file under `~/.config/mcp/oauth/` when the OS secure store is unavailable (e.g. headless systems)
+- Invalid OAuth token errors are classified as `AUTH_ERROR`
+
+## [0.3.1] - 2026-07-15
+
+### Fixed
+
+- **`call` outputs raw text content** - Previously emitted the full MCP `{ "content": [...] }` envelope
+- **Daemon IPC honors `MCP_TIMEOUT`** - `listTools`, `callTool`, and `getInstructions` requests through the daemon use the configured timeout; timed-out sockets are closed
+
 ## [0.3.0] - 2026-01-22
 
 ### Added
