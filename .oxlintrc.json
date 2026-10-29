@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "off",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
+  },
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "rules": {
+    "typescript/no-explicit-any": "warn"
+  }
+}

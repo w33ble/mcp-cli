@@ -597,9 +597,11 @@ bun run dev
 # Type checking
 bun run typecheck
 
-# Linting
+# Linting (oxlint) and formatting (oxfmt)
 bun run lint
 bun run lint:fix
+bun run fmt
+bun run fmt:check
 
 # Run all tests (unit + integration)
 bun test
