@@ -235,7 +235,8 @@ export function unknownOptionError(option: string): CliError {
   } else if (['info', 'list', 'get'].includes(optionLower)) {
     suggestion = `Use 'info' as a subcommand, not option: 'mcp-cli info <server>'`;
   } else {
-    suggestion = 'Valid options: -c/--config, -j/--json, -d/--with-descriptions, -r/--raw';
+    suggestion =
+      'Valid options: -c/--config <path>, -d/--with-descriptions, -h/--help, -v/--version';
   }
 
   return {

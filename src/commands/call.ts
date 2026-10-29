@@ -3,7 +3,6 @@
  *
  * Output behavior:
  * - Default: Raw text content to stdout (CLI-friendly)
- * - With --json: Full JSON response to stdout
  * - Errors always go to stderr
  */
 
