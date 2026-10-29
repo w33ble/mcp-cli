@@ -51,6 +51,6 @@
   },
   "homepage": "https://github.com/w33ble/mcp-cli#readme",
   "engines": {
-    "bun": ">=1.0.0"
+    "bun": "^1.4.4"
   }
 }
