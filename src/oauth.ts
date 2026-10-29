@@ -277,14 +277,14 @@ function createCallback(expectedState: string): {
       }
       if (url.searchParams.has('error')) {
         clearTimeout(timer);
-        server.stop(true);
+        server.stop(); // graceful: let this response reach the browser
         rejectCode(new Error('OAuth authorization was denied'));
         return new Response('Authorization failed', { status: 400, headers });
       }
       const code = url.searchParams.get('code');
       if (!code) return new Response('Authorization failed', { status: 400, headers });
       clearTimeout(timer);
-      server.stop(true);
+      server.stop(); // graceful: let this response reach the browser
       resolveCode({ code, iss: url.searchParams.get('iss') ?? undefined });
       return new Response('Authentication complete. You can close this window.', { headers });
     },
