@@ -10,7 +10,7 @@
  *   bun run scripts/generate-system-instructions.ts -c /path/to/config.json
  */
 
-import { getConnection, safeClose, getConcurrencyLimit, type McpConnection } from '../src/client.js';
+import { getConnection, safeClose, type McpConnection } from '../src/client.js';
 import { loadConfig, listServerNames, getServerConfig, type McpServersConfig } from '../src/config.js';
 
 interface ServerInfo {

@@ -2,7 +2,7 @@
  * Unit tests for MCP client module
  */
 
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, afterEach } from 'bun:test';
 import {
   type HttpServerConfig,
   type StdioServerConfig,

@@ -21,7 +21,6 @@ import { formatSearchResults } from '../output.js';
 
 export interface GrepOptions {
   pattern: string;
-  withDescriptions: boolean;
   configPath?: string;
 }
 
@@ -91,7 +90,7 @@ async function processWithConcurrency<T, R>(
   processor: (item: T, index: number) => Promise<R>,
   maxConcurrency: number,
 ): Promise<R[]> {
-  const results: R[] = new Array(items.length);
+  const results: R[] = [];
   let currentIndex = 0;
 
   async function worker(): Promise<void> {
@@ -225,5 +224,5 @@ export async function grepCommand(options: GrepOptions): Promise<void> {
   }
 
   // Human-readable output
-  console.log(formatSearchResults(allResults, options.withDescriptions));
+  console.log(formatSearchResults(allResults));
 }

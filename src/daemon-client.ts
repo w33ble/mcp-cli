@@ -91,7 +91,7 @@ async function sendRequest(
             const response = JSON.parse(data.toString().trim());
             socket.end();
             resolve(response);
-          } catch (err) {
+          } catch {
             clearTimeoutIfNeeded();
             socket.end();
             reject(new Error('Invalid response from daemon'));

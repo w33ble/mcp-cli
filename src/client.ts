@@ -22,7 +22,6 @@ import {
   isToolAllowed,
 } from './config.js';
 import {
-  type DaemonConnection,
   cleanupOrphanedDaemons,
   getDaemonConnection,
 } from './daemon-client.js';

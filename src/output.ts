@@ -77,7 +77,6 @@ export function formatServerList(
  */
 export function formatSearchResults(
   results: Array<{ server: string; tool: ToolInfo }>,
-  withDescriptions: boolean,
 ): string {
   const lines: string[] = [];
 

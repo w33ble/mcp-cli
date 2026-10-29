@@ -225,7 +225,7 @@ export function invalidTargetError(target: string): CliError {
     type: 'INVALID_TARGET',
     message: `Invalid target format: "${target}"`,
     details: 'Expected format: server/tool',
-    suggestion: `Use 'mcp-cli <server>/<tool> <json>' format, e.g., 'mcp-cli github/search_repos \'{"query":"mcp"}\''`,
+    suggestion: `Use 'mcp-cli <server>/<tool> <json>' format, e.g., 'mcp-cli github/search_repos '{"query":"mcp"}''`,
   };
 }
 
@@ -257,9 +257,9 @@ export function unknownOptionError(option: string): CliError {
   } else if (['tool', 't'].includes(optionLower)) {
     suggestion = `Tool is a positional argument. Use 'mcp-cli call <server> <tool>'`;
   } else if (['args', 'arguments', 'a', 'input'].includes(optionLower)) {
-    suggestion = `Pass JSON directly: 'mcp-cli call <server> <tool> '{\"key\": \"value\"}''`;
+    suggestion = `Pass JSON directly: 'mcp-cli call <server> <tool> '{"key": "value"}''`;
   } else if (['pattern', 'p', 'search', 'query'].includes(optionLower)) {
-    suggestion = `Use 'mcp-cli grep \"*pattern*\"'`;
+    suggestion = `Use 'mcp-cli grep "*pattern*"'`;
   } else if (['call', 'run', 'exec'].includes(optionLower)) {
     suggestion = `Use 'call' as a subcommand, not option: 'mcp-cli call <server> <tool>'`;
   } else if (['info', 'list', 'get'].includes(optionLower)) {
@@ -287,13 +287,13 @@ export function missingArgumentError(
   switch (command) {
     case 'call':
       if (argument.includes('server')) {
-        suggestion = `Use 'mcp-cli call <server> <tool> '{\"key\": \"value\"}''`;
+        suggestion = `Use 'mcp-cli call <server> <tool> '{"key": "value"}''`;
       } else {
-        suggestion = `Use 'mcp-cli call <server> <tool> '{\"key\": \"value\"}''`;
+        suggestion = `Use 'mcp-cli call <server> <tool> '{"key": "value"}''`;
       }
       break;
     case 'grep':
-      suggestion = `Use 'mcp-cli grep \"*pattern*\"'`;
+      suggestion = `Use 'mcp-cli grep "*pattern*"'`;
       break;
     case '-c/--config':
       suggestion = `Use 'mcp-cli -c /path/to/mcp_servers.json'`;

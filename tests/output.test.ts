@@ -73,7 +73,7 @@ describe('output', () => {
         },
       ];
 
-      const output = formatSearchResults(results, false);
+      const output = formatSearchResults(results);
       expect(output).toContain('github');
       expect(output).toContain('search');
       expect(output).toContain('fs');
@@ -92,12 +92,8 @@ describe('output', () => {
         },
       ];
 
-      // Descriptions are always shown in grep output (regardless of -d flag)
-      const withDesc = formatSearchResults(results, true);
-      expect(withDesc).toContain('Tool description');
-
-      const withoutDesc = formatSearchResults(results, false);
-      expect(withoutDesc).toContain('Tool description');
+      const output = formatSearchResults(results);
+      expect(output).toContain('Tool description');
     });
   });
 

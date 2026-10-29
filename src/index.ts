@@ -17,14 +17,6 @@ import { grepCommand } from './commands/grep.js';
 import { infoCommand } from './commands/info.js';
 import { listCommand } from './commands/list.js';
 import {
-  DEFAULT_CONCURRENCY,
-  DEFAULT_MAX_RETRIES,
-  DEFAULT_RETRY_DELAY_MS,
-  DEFAULT_TIMEOUT_SECONDS,
-  listServerNames,
-  loadConfig,
-} from './config.js';
-import {
   ErrorCode,
   ambiguousCommandError,
   formatCliError,
@@ -44,18 +36,6 @@ interface ParsedArgs {
   args?: string;
   withDescriptions: boolean;
   configPath?: string;
-}
-
-/**
- * Known subcommands
- */
-const SUBCOMMANDS = ['info', 'grep', 'call', 'auth'] as const;
-
-/**
- * Check if a string looks like a subcommand (not a server name)
- */
-function isKnownSubcommand(arg: string): boolean {
-  return SUBCOMMANDS.includes(arg as (typeof SUBCOMMANDS)[number]);
 }
 
 /**
@@ -458,7 +438,6 @@ async function main(): Promise<void> {
     case 'grep':
       await grepCommand({
         pattern: args.pattern ?? '',
-        withDescriptions: args.withDescriptions,
         configPath: args.configPath,
       });
       break;
