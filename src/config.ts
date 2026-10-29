@@ -3,7 +3,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -276,6 +276,31 @@ export function getSocketDir(): string {
   // macOS uses /var/folders which is auto-cleaned, Linux uses /tmp
   const base = process.platform === 'darwin' ? '/tmp' : '/tmp';
   return join(base, `mcp-cli-${uid}`);
+}
+
+/**
+ * Create the socket directory if needed, refusing one another user could tamper with
+ * (not a real directory, not owned by us, or group/world accessible).
+ */
+export function ensureSocketDir(dir = getSocketDir()): string {
+  try {
+    mkdirSync(dir, { mode: 0o700 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+  }
+
+  const stat = lstatSync(dir);
+  const uid = process.getuid?.();
+  const unsafe =
+    !stat.isDirectory() || (uid !== undefined && (stat.uid !== uid || (stat.mode & 0o077) !== 0));
+
+  if (unsafe) {
+    throw new Error(
+      `Refusing to use daemon socket directory ${dir}: it must be a directory owned by the current user with mode 0700`
+    );
+  }
+
+  return dir;
 }
 
 /**

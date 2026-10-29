@@ -5,8 +5,7 @@
  * It maintains the MCP server connection and forwards requests from CLI invocations.
  */
 
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
 import { type ConnectedClient, callTool, connectToServer, listTools } from './client.js';
 import {
@@ -15,7 +14,7 @@ import {
   getConfigHash,
   getDaemonTimeoutMs,
   getPidPath,
-  getSocketDir,
+  ensureSocketDir,
   getSocketPath,
 } from './config.js';
 
@@ -52,11 +51,6 @@ interface PidFileContent {
  */
 export function writePidFile(serverName: string, configHash: string): void {
   const pidPath = getPidPath(serverName);
-  const dir = dirname(pidPath);
-
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true, mode: 0o700 });
-  }
 
   const content: PidFileContent = {
     pid: process.pid,
@@ -228,11 +222,7 @@ export async function runDaemon(
     process.exit(0);
   });
 
-  // Ensure socket dir exists
-  const socketDir = getSocketDir();
-  if (!existsSync(socketDir)) {
-    mkdirSync(socketDir, { recursive: true, mode: 0o700 });
-  }
+  ensureSocketDir();
 
   // Remove stale socket if exists
   removeSocketFile(namespace);

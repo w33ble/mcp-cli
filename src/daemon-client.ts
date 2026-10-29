@@ -12,6 +12,7 @@ import {
   debug,
   getConfigHash,
   getCredentialIdentity,
+  ensureSocketDir,
   getSocketDir,
   getSocketPath,
   getTimeoutMs,
@@ -250,6 +251,13 @@ export async function getDaemonConnection(
   config: ServerConfig,
   configPath?: string
 ): Promise<DaemonConnection | null> {
+  try {
+    ensureSocketDir();
+  } catch (error) {
+    console.error(`[mcp-cli] Warning: ${(error as Error).message}; using direct connections`);
+    return null;
+  }
+
   const namespace =
     'url' in config
       ? getCredentialIdentity(configPath ?? process.cwd(), serverName, config.url)
@@ -362,9 +370,15 @@ export async function getDaemonConnection(
  * Call this on CLI startup
  */
 export async function cleanupOrphanedDaemons(): Promise<void> {
-  const socketDir = getSocketDir();
+  if (!existsSync(getSocketDir())) {
+    return;
+  }
 
-  if (!existsSync(socketDir)) {
+  let socketDir: string;
+  try {
+    // Never trust pid files from a directory another user could have planted
+    socketDir = ensureSocketDir();
+  } catch {
     return;
   }
 

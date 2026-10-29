@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,6 +14,7 @@ import {
   isHttpServer,
   isStdioServer,
   getConfigHash,
+  ensureSocketDir,
 } from '../src/config';
 
 describe('config', () => {
@@ -258,6 +259,32 @@ describe('config', () => {
     test('isStdioServer identifies stdio config', () => {
       expect(isStdioServer({ command: 'echo' })).toBe(true);
       expect(isStdioServer({ url: 'https://example.com' })).toBe(false);
+    });
+  });
+
+  describe('ensureSocketDir', () => {
+    test('creates a missing directory with mode 0700', async () => {
+      const dir = join(tempDir, 'sockets');
+
+      expect(ensureSocketDir(dir)).toBe(dir);
+      expect((await stat(dir)).mode & 0o777).toBe(0o700);
+    });
+
+    test('rejects an existing directory other users can access', async () => {
+      const dir = join(tempDir, 'sockets');
+      await mkdir(dir);
+      await chmod(dir, 0o777);
+
+      expect(() => ensureSocketDir(dir)).toThrow('Refusing to use daemon socket directory');
+    });
+
+    test('rejects a symlink, even to a safe directory', async () => {
+      const target = join(tempDir, 'real');
+      const dir = join(tempDir, 'sockets');
+      await mkdir(target, { mode: 0o700 });
+      await symlink(target, dir);
+
+      expect(() => ensureSocketDir(dir)).toThrow('Refusing to use daemon socket directory');
     });
   });
 });
