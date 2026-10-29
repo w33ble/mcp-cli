@@ -78,7 +78,7 @@ echo "Running tests..."
 bun run typecheck
 bun run lint
 bun run fmt:check
-bun test tests/config.test.ts tests/output.test.ts tests/client.test.ts tests/errors.test.ts
+bun run test:unit
 
 echo -e "${GREEN}Tests passed!${NC}"
 

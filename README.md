@@ -607,7 +607,7 @@ bun run fmt:check
 bun test
 
 # Run only unit tests (fast)
-bun test tests/config.test.ts tests/output.test.ts tests/client.test.ts
+bun run test:unit
 
 # Run integration tests (requires MCP server, ~35s)
 bun test tests/integration/
