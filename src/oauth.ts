@@ -2,12 +2,13 @@ import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { type OAuthClientProvider, auth } from '@modelcontextprotocol/sdk/client/auth.js';
+import { auth } from '@modelcontextprotocol/client';
 import type {
+  OAuthClientProvider,
   OAuthClientInformationMixed,
   OAuthClientMetadata,
   OAuthTokens,
-} from '@modelcontextprotocol/sdk/shared/auth.js';
+} from '@modelcontextprotocol/client';
 
 import { type HttpServerConfig, getCredentialIdentity } from './config.js';
 import { ErrorCode, formatCliError } from './errors.js';
@@ -246,17 +247,22 @@ function hasAuthorizationHeader(config: HttpServerConfig): boolean {
   return Object.keys(config.headers ?? {}).some((name) => name.toLowerCase() === 'authorization');
 }
 
+/** Authorization response params; `iss` is checked by the SDK against the AS (RFC 9207). */
+interface OAuthCallbackResult {
+  code: string;
+  iss?: string;
+}
+
 function createCallback(expectedState: string): {
   redirectUrl: string;
-  wait: () => Promise<string>;
+  wait: () => Promise<OAuthCallbackResult>;
   close: () => void;
 } {
-  let resolveCode: (code: string) => void;
-  let rejectCode: (error: Error) => void;
-  const result = new Promise<string>((resolve, reject) => {
-    resolveCode = resolve;
-    rejectCode = reject;
-  });
+  const {
+    promise: result,
+    resolve: resolveCode,
+    reject: rejectCode,
+  } = Promise.withResolvers<OAuthCallbackResult>();
   const server = Bun.serve({
     hostname: '127.0.0.1',
     port: 0,
@@ -279,7 +285,7 @@ function createCallback(expectedState: string): {
       if (!code) return new Response('Authorization failed', { status: 400, headers });
       clearTimeout(timer);
       server.stop(true);
-      resolveCode(code);
+      resolveCode({ code, iss: url.searchParams.get('iss') ?? undefined });
       return new Response('Authentication complete. You can close this window.', { headers });
     },
   });
@@ -321,9 +327,9 @@ export async function login(
     provider.state = () => state;
     await auth(provider, { serverUrl: config.url });
     stage = 'wait for OAuth callback';
-    const code = await callback.wait();
+    const { code, iss } = await callback.wait();
     stage = 'exchange authorization code';
-    await auth(provider, { serverUrl: config.url, authorizationCode: code });
+    await auth(provider, { serverUrl: config.url, authorizationCode: code, iss });
   } catch (error) {
     if (process.env.MCP_DEBUG) {
       const errorName = error instanceof Error ? error.name : typeof error;
