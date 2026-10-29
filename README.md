@@ -580,7 +580,7 @@ The CLI includes **automatic retry with exponential backoff** for transient fail
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) >= 1.0.0
+- [Bun](https://bun.sh/) ~1.4.4
 
 ### Setup
 
