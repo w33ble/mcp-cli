@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Requires Bun ~1.4.4** - `engines.bun` pinned (was `>=1.0.0`)
+- Bumped `@modelcontextprotocol/sdk` to 1.32.2
+
 ### Security
 
 - **Daemon no longer leaks config secrets via argv** - Resolved server config (including `${VAR}`-substituted `env`/`headers`) is now passed to the daemon over stdin instead of as a command-line argument, so it no longer shows up in `ps`
