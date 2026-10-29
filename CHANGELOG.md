@@ -4,11 +4,11 @@
 
 ### Changed
 
-- **Requires Bun ~1.4.4** - `engines.bun` pinned (was `>=1.0.0`)
 - Bumped `@modelcontextprotocol/sdk` to 1.32.2
 
 ### Security
 
+- **Requires Bun ~1.4.4** - `engines.bun` pinned (was `>=1.0.0`). Bun 1.4.4 updates its bundled root certificates to NSS 3.131.1, which distrusts the compromised [eMudhra intermediate CAs](https://emudhra.we-have-a-problem.com/). Earlier Bun versions, and binaries compiled with them, still trust those intermediates for HTTPS connections to MCP servers and OAuth endpoints
 - **Daemon no longer leaks config secrets via argv** - Resolved server config (including `${VAR}`-substituted `env`/`headers`) is now passed to the daemon over stdin instead of as a command-line argument, so it no longer shows up in `ps`
 
 ## [0.4.1] - 2026-07-16
