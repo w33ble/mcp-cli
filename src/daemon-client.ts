@@ -177,6 +177,7 @@ async function spawnDaemon(
   // Find the daemon script path
   const daemonScript = join(import.meta.dir, 'daemon.ts');
 
+  // Config carries resolved secrets; send via stdin so it never appears in argv (ps)
   const configJson = JSON.stringify(config);
 
   // Spawn detached process
@@ -187,10 +188,10 @@ async function spawnDaemon(
       daemonScript,
       '--daemon',
       serverName,
-      configJson,
       namespace,
       configPath ?? '',
     ],
+    stdin: new Blob([configJson]),
     stdout: 'pipe',
     stderr: 'pipe',
     env: { ...process.env },

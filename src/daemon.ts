@@ -401,25 +401,31 @@ export async function runDaemon(
 // Check if running as daemon process
 if (process.argv[2] === '--daemon') {
   const serverName = process.argv[3];
-  const configJson = process.argv[4];
-  const namespace = process.argv[5];
-  const configPath = process.argv[6];
+  const namespace = process.argv[4];
+  const configPath = process.argv[5];
 
-  if (!serverName || !configJson) {
-    console.error('Usage: daemon.ts --daemon <serverName> <configJson>');
+  if (!serverName) {
+    console.error(
+      'Usage: daemon.ts --daemon <serverName> [namespace] [configPath] < configJson',
+    );
     process.exit(1);
   }
 
-  let config: ServerConfig;
-  try {
-    config = JSON.parse(configJson);
-  } catch {
-    console.error('Invalid config JSON');
-    process.exit(1);
-  }
+  Bun.stdin
+    .text()
+    .then((configJson) => {
+      let config: ServerConfig;
+      try {
+        config = JSON.parse(configJson);
+      } catch {
+        console.error('Invalid config JSON on stdin');
+        process.exit(1);
+      }
 
-  runDaemon(serverName, config, namespace, configPath).catch((error) => {
-    console.error('Daemon failed:', error);
-    process.exit(1);
-  });
+      return runDaemon(serverName, config, namespace, configPath);
+    })
+    .catch((error) => {
+      console.error('Daemon failed:', error);
+      process.exit(1);
+    });
 }
