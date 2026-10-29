@@ -15,13 +15,7 @@
     "verbatimModuleSyntax": true,
     "lib": [
       "ESNext"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    }
+    ]
   },
   "include": [
     "src/**/*",
