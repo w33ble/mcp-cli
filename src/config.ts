@@ -483,6 +483,7 @@ export async function loadConfig(explicitPath?: string): Promise<McpServersConfi
   try {
     config = JSON.parse(content);
   } catch (e) {
+    // oxlint-disable-next-line eslint/preserve-caught-error -- parse message is already in the error details; the cause adds nothing
     throw new Error(formatCliError(configInvalidJsonError(configPath, (e as Error).message)));
   }
 
