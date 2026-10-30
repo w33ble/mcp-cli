@@ -57,6 +57,7 @@ async function readBundle(identity: string): Promise<CredentialBundle | undefine
     return bundle;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    // oxlint-disable-next-line eslint/preserve-caught-error -- parse errors can echo credential file contents (tokens)
     throw new Error('OAuth credential storage is corrupt; run auth login again');
   }
 }
