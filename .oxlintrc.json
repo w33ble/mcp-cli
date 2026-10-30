@@ -12,6 +12,7 @@
   "plugins": ["typescript", "unicorn", "oxc"],
   "rules": {
     "typescript/no-explicit-any": "warn",
-    "eslint/no-shadow": "error"
+    "eslint/no-shadow": "error",
+    "unicorn/no-array-sort": "error"
   }
 }
