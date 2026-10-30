@@ -7,6 +7,8 @@
 
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
+import type { Socket } from 'bun';
+
 import { type ConnectedClient, callTool, connectToServer, listTools } from './client.js';
 import {
   type ServerConfig,
@@ -17,6 +19,7 @@ import {
   ensureSocketDir,
   getSocketPath,
 } from './config.js';
+import { JsonLineSocket } from './framing.js';
 
 // ============================================================================
 // Types
@@ -151,7 +154,7 @@ export async function runDaemon(
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let mcpClient: ConnectedClient | null = null;
   let server: ReturnType<typeof Bun.listen> | null = null;
-  const activeConnections = new Set<unknown>();
+  const activeConnections = new Map<Socket<unknown>, JsonLineSocket>();
 
   // Cleanup function
   const cleanup = async () => {
@@ -163,9 +166,9 @@ export async function runDaemon(
     }
 
     // Close all active socket connections
-    for (const conn of activeConnections) {
+    for (const socket of activeConnections.keys()) {
       try {
-        (conn as { end: () => void }).end();
+        socket.end();
       } catch {
         // Ignore
       }
@@ -242,19 +245,8 @@ export async function runDaemon(
   }
 
   // Handle incoming request
-  const handleRequest = async (data: Buffer): Promise<DaemonResponse> => {
+  const handleRequest = async (request: DaemonRequest): Promise<DaemonResponse> => {
     resetIdleTimer();
-
-    let request: DaemonRequest;
-    try {
-      request = JSON.parse(data.toString());
-    } catch {
-      return {
-        id: 'unknown',
-        success: false,
-        error: { code: 'INVALID_REQUEST', message: 'Invalid JSON' },
-      };
-    }
 
     debug(`[daemon:${serverName}] Request: ${request.type} (${request.id})`);
 
@@ -330,12 +322,31 @@ export async function runDaemon(
       unix: socketPath,
       socket: {
         open(socket) {
-          activeConnections.add(socket);
+          activeConnections.set(socket, new JsonLineSocket(socket));
           debug(`[daemon:${serverName}] Client connected`);
         },
         async data(socket, data) {
-          const response = await handleRequest(data);
-          socket.write(`${JSON.stringify(response)}\n`);
+          const connection = activeConnections.get(socket);
+          if (!connection) return;
+
+          let requests: unknown[];
+          try {
+            requests = connection.receive(data);
+          } catch {
+            connection.send({
+              id: 'unknown',
+              success: false,
+              error: { code: 'INVALID_REQUEST', message: 'Invalid JSON' },
+            });
+            return;
+          }
+
+          for (const request of requests) {
+            connection.send(await handleRequest(request as DaemonRequest));
+          }
+        },
+        drain(socket) {
+          activeConnections.get(socket)?.flush();
         },
         close(socket) {
           activeConnections.delete(socket);

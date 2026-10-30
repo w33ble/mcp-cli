@@ -29,10 +29,15 @@ describe('daemon', () => {
       },
     };
 
+    const large = {
+      command: 'bun',
+      args: [join(import.meta.dir, '..', 'fixtures', 'large-payload-server.ts')],
+    };
+
     // Separate names give separate daemons, so one test can't reuse the other's
     await writeFile(
       configPath,
-      JSON.stringify({ mcpServers: { filesystem, compiled: filesystem } })
+      JSON.stringify({ mcpServers: { filesystem, compiled: filesystem, large } })
     );
   });
 
@@ -78,5 +83,31 @@ describe('daemon', () => {
 
     expect(processArgs).toContain(`${binary} --daemon compiled`);
     expect(processArgs).not.toContain(canary);
+  }, 60000);
+
+  test('relays messages larger than one socket read in both directions', async () => {
+    const cliPath = join(import.meta.dir, '..', '..', 'src', 'index.ts');
+    const env = { ...process.env, MCP_CLI_TEST_SECRET: canary, MCP_DEBUG: '1' };
+
+    const info = await $`bun run ${cliPath} -c ${configPath} -d info large`
+      .env(env)
+      .nothrow()
+      .quiet();
+
+    expect(info.stderr.toString()).toContain('Using daemon connection');
+    expect(info.exitCode).toBe(0);
+    expect(info.stdout.toString()).toContain('Tools (300)');
+    expect(info.stdout.toString()).toContain('café — ✓ ünïcödé');
+
+    const text = 'é✓'.repeat(300_000);
+    const args = new Response(JSON.stringify({ text }));
+    const call = await $`bun run ${cliPath} -c ${configPath} call large echo < ${args}`
+      .env(env)
+      .nothrow()
+      .quiet();
+
+    expect(call.stderr.toString()).toContain('Using daemon connection');
+    expect(call.exitCode).toBe(0);
+    expect(call.stdout.toString().trim()).toBe(text);
   }, 60000);
 });

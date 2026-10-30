@@ -26,6 +26,7 @@ import {
   removePidFile,
   removeSocketFile,
 } from './daemon.js';
+import { JsonLineSocket } from './framing.js';
 
 export function daemonResponseError(error?: { code: string; message: string }): Error {
   const result = new Error(error?.message ?? 'Daemon request failed');
@@ -75,23 +76,34 @@ async function sendRequest(
       }
     };
 
+    let connection: JsonLineSocket | undefined;
     const socketPromise = Bun.connect({
       unix: socketPath,
       socket: {
         open(socket) {
-          socket.write(JSON.stringify(request));
+          connection = new JsonLineSocket(socket);
+          connection.send(request);
         },
         data(socket, data) {
+          let messages: unknown[];
           try {
-            clearTimeoutIfNeeded();
-            const response = JSON.parse(data.toString().trim());
-            socket.end();
-            resolve(response);
+            messages = connection?.receive(data) ?? [];
           } catch {
             clearTimeoutIfNeeded();
             socket.end();
             reject(new Error('Invalid response from daemon'));
+            return;
           }
+
+          const [response] = messages;
+          if (response === undefined) return; // wait for the rest of the line
+
+          clearTimeoutIfNeeded();
+          socket.end();
+          resolve(response as DaemonResponse);
+        },
+        drain() {
+          connection?.flush();
         },
         error(socket, error) {
           clearTimeoutIfNeeded();

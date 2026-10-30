@@ -348,7 +348,7 @@ function sortConfigValue(value: unknown): unknown {
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .toSorted(([a], [b]) => a.localeCompare(b))
         .map(([key, child]) => [key, sortConfigValue(child)])
     );
   }
@@ -483,6 +483,7 @@ export async function loadConfig(explicitPath?: string): Promise<McpServersConfi
   try {
     config = JSON.parse(content);
   } catch (e) {
+    // oxlint-disable-next-line eslint/preserve-caught-error -- parse message is already in the error details; the cause adds nothing
     throw new Error(formatCliError(configInvalidJsonError(configPath, (e as Error).message)));
   }
 
