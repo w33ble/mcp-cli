@@ -131,9 +131,9 @@ export function normalizeMissingOAuthCredentialsError(
   error: unknown,
   serverName: string,
   hasOAuthClient: boolean,
-  hasAuthorizationHeader = false
+  authorizationHeaderConfigured = false
 ): Error {
-  if (!hasOAuthClient && !hasAuthorizationHeader && isAuthRequiredError(error))
+  if (!hasOAuthClient && !authorizationHeaderConfigured && isAuthRequiredError(error))
     return authError(serverName);
   return error instanceof Error ? error : new Error('Connection failed');
 }
