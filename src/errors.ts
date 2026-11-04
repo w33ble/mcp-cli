@@ -108,6 +108,15 @@ export function serverNotFoundError(serverName: string, available: string[]): Cl
   };
 }
 
+export function serverDisabledError(serverName: string): CliError {
+  return {
+    code: ErrorCode.CLIENT_ERROR,
+    type: 'SERVER_DISABLED',
+    message: `Server "${serverName}" is disabled in config`,
+    suggestion: `Remove "enabled": false from "${serverName}" in mcp_servers.json to use it`,
+  };
+}
+
 export function serverConnectionError(serverName: string, cause: string): CliError {
   // Detect common error patterns
   let suggestion = 'Check server configuration and ensure the server process can start';

@@ -101,7 +101,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
   const serverNames = listServerNames(config);
 
   if (serverNames.length === 0) {
-    console.error('Warning: No servers configured. Add servers to mcp_servers.json');
+    console.error('Warning: No enabled servers configured. Add servers to mcp_servers.json');
     return;
   }
 

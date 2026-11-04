@@ -233,6 +233,18 @@ describe('CLI Error Handling Tests', () => {
         expect(result.stderr).toContain('mcp-cli auth login protected');
       });
     });
+
+    test('list hides disabled servers', async () => {
+      await withProtectedServer(
+        async (configPath) => {
+          const result = await runCli(['-c', configPath]);
+          expect(result.exitCode).toBe(0);
+          expect(result.stdout).toContain('protected');
+          expect(result.stdout).not.toContain('hidden');
+        },
+        { hidden: { url: 'http://127.0.0.1:1', enabled: false } }
+      );
+    });
   });
 
   describe('Help and version', () => {
