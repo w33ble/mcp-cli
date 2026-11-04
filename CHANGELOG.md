@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-04
+
+### Fixed
+
+- **Large daemon responses no longer fail** - The CLI and the connection daemon treated each chunk read from the socket as a whole JSON message, and the daemon ignored partial socket writes. Any response bigger than one read, which covers most real tool lists, failed with `Invalid response from daemon`. Messages are now newline-terminated, buffered until complete, and resumed on drain when the socket applies backpressure. Daemons started by 0.5.1 keep running the old code until they go idle, so run `pkill -f "mcp-cli --daemon"` once after upgrading
+
 ## [0.5.1] - 2026-10-29
 
 ### Fixed
