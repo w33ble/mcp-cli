@@ -23,8 +23,11 @@ import {
   isProcessRunning,
   killProcess,
   readPidFile,
+  flushMessages,
+  readMessages,
   removePidFile,
   removeSocketFile,
+  writeMessage,
 } from './daemon.js';
 
 export function daemonResponseError(error?: { code: string; message: string }): Error {
@@ -79,26 +82,34 @@ async function sendRequest(
       unix: socketPath,
       socket: {
         open(socket) {
-          socket.write(JSON.stringify(request));
+          writeMessage(socket, request);
+        },
+        drain(socket) {
+          flushMessages(socket);
         },
         data(socket, data) {
+          const [message] = readMessages(socket, data);
+          if (message === undefined) return;
+
+          clearTimeoutIfNeeded();
+
+          // Settle before end(): Bun runs the close handler synchronously
           try {
-            clearTimeoutIfNeeded();
-            const response = JSON.parse(data.toString().trim());
-            socket.end();
-            resolve(response);
+            resolve(JSON.parse(message));
           } catch {
-            clearTimeoutIfNeeded();
-            socket.end();
             reject(new Error('Invalid response from daemon'));
           }
+
+          socket.end();
         },
         error(socket, error) {
           clearTimeoutIfNeeded();
           reject(error);
         },
         close() {
-          // Connection closed
+          // No-op if a response already resolved the request
+          clearTimeoutIfNeeded();
+          reject(new Error('Daemon closed the connection before responding'));
         },
         connectError(socket, error) {
           clearTimeoutIfNeeded();
