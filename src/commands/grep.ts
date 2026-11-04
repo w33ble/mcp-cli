@@ -179,19 +179,14 @@ export async function grepCommand(options: GrepOptions): Promise<void> {
 
   const allResults: SearchResult[] = [];
   const failedServers: string[] = [];
-  let authError: string | undefined;
+  const authServers: string[] = [];
 
   for (const result of serverResults) {
     allResults.push(...result.results);
     if (result.error) {
       failedServers.push(result.serverName);
     }
-    if (result.errorCode === ErrorCode.AUTH_ERROR) authError = result.error;
-  }
-
-  if (authError) {
-    console.error(authError);
-    process.exit(ErrorCode.AUTH_ERROR);
+    if (result.errorCode === ErrorCode.AUTH_ERROR) authServers.push(result.serverName);
   }
 
   // Show failed servers warning
@@ -199,6 +194,10 @@ export async function grepCommand(options: GrepOptions): Promise<void> {
     console.error(
       `Warning: ${failedServers.length} server(s) failed to connect: ${failedServers.join(', ')}`
     );
+  }
+
+  for (const serverName of authServers) {
+    console.error(`  Run 'mcp-cli auth login ${serverName}' to authenticate`);
   }
 
   if (allResults.length === 0) {

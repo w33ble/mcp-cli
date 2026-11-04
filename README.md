@@ -233,6 +233,10 @@ mcp-cli -c ~/.config/mcp/mcp_servers.json auth login notion
 Credentials use the operating system secure store when available, with a
 permission-restricted file fallback under `~/.config/mcp/oauth/`.
 
+When a server needs authentication, `mcp-cli` and `mcp-cli grep` still list
+tools from every other server and show an `auth required` hint for the
+unauthenticated one. `call` and `info` exit with code 4.
+
 #### Complex Commands
 
 For JSON arguments containing single quotes, special characters, or long text, use **stdin** to avoid shell escaping issues:

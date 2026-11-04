@@ -118,12 +118,6 @@ export async function listCommand(options: ListOptions): Promise<void> {
   // Sort by name to ensure consistent output order
   servers.sort((a, b) => a.name.localeCompare(b.name));
 
-  const authFailure = servers.find((server) => server.errorCode === ErrorCode.AUTH_ERROR);
-  if (authFailure?.error) {
-    console.error(authFailure.error);
-    process.exit(ErrorCode.AUTH_ERROR);
-  }
-
   // Convert errors to tool-like display for human output
   const displayServers = servers.map((s) => ({
     name: s.name,
@@ -131,7 +125,10 @@ export async function listCommand(options: ListOptions): Promise<void> {
     tools: s.error
       ? [
           {
-            name: `<error: ${s.error}>`,
+            name:
+              s.errorCode === ErrorCode.AUTH_ERROR
+                ? `<auth required: run 'mcp-cli auth login ${s.name}'>`
+                : `<error: ${s.error}>`,
             description: undefined,
             inputSchema: {},
           },

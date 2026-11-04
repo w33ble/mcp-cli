@@ -12,6 +12,32 @@ import { join } from 'node:path';
 
 import { $ } from 'bun';
 
+/** Run with a config whose "protected" server always answers 401 */
+async function withProtectedServer(
+  run: (configPath: string) => Promise<void>,
+  extraServers: Record<string, unknown> = {}
+): Promise<void> {
+  const server = Bun.serve({
+    port: 0,
+    fetch: () => new Response('Unauthorized', { status: 401 }),
+  });
+  const configDir = await mkdtemp(join(tmpdir(), 'mcp-cli-auth-'));
+  const configPath = join(configDir, 'mcp_servers.json');
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      mcpServers: { protected: { url: `http://127.0.0.1:${server.port}` }, ...extraServers },
+    })
+  );
+
+  try {
+    await run(configPath);
+  } finally {
+    server.stop(true);
+    await rm(configDir, { recursive: true, force: true });
+  }
+}
+
 describe('CLI Error Handling Tests', () => {
   const cliPath = join(import.meta.dir, '..', 'src', 'index.ts');
 
@@ -183,27 +209,29 @@ describe('CLI Error Handling Tests', () => {
 
   describe('Authentication errors', () => {
     test('preserves OAuth guidance and exit code for tool operations', async () => {
-      const server = Bun.serve({
-        port: 0,
-        fetch: () => new Response('Unauthorized', { status: 401 }),
-      });
-      const configDir = await mkdtemp(join(tmpdir(), 'mcp-cli-auth-'));
-      const configPath = join(configDir, 'mcp_servers.json');
-      await writeFile(
-        configPath,
-        JSON.stringify({
-          mcpServers: { protected: { url: `http://127.0.0.1:${server.port}` } },
-        })
-      );
-
-      try {
+      await withProtectedServer(async (configPath) => {
         const result = await runCli(['-c', configPath, 'call', 'protected/tool', '{}']);
         expect(result.exitCode).toBe(4);
         expect(result.stderr).toContain('mcp-cli auth login protected');
-      } finally {
-        server.stop(true);
-        await rm(configDir, { recursive: true, force: true });
-      }
+      });
+    });
+
+    test('list shows unauthenticated servers inline instead of failing', async () => {
+      await withProtectedServer(async (configPath) => {
+        const result = await runCli(['-c', configPath]);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('protected');
+        expect(result.stdout).toContain("auth required: run 'mcp-cli auth login protected'");
+      });
+    });
+
+    test('grep warns about unauthenticated servers instead of failing', async () => {
+      await withProtectedServer(async (configPath) => {
+        const result = await runCli(['-c', configPath, 'grep', '*']);
+        expect(result.exitCode).toBe(0);
+        expect(result.stderr).toContain('failed to connect: protected');
+        expect(result.stderr).toContain('mcp-cli auth login protected');
+      });
     });
   });
 
