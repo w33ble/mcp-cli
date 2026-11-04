@@ -3,6 +3,8 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { SdkErrorCode, SdkHttpError } from '@modelcontextprotocol/client';
+
 import { createConfiguredFetch } from '../src/client';
 import { ErrorCode } from '../src/errors';
 import {
@@ -163,6 +165,19 @@ describe('OAuth', () => {
 
     expect((error as Error & { code?: ErrorCode }).code).toBe(ErrorCode.AUTH_ERROR);
     expect(error.message).toContain('mcp-cli auth login notion');
+  });
+
+  test('turns an SDK HTTP 401 with an empty body into an auth error', () => {
+    const error = normalizeMissingOAuthCredentialsError(
+      new SdkHttpError(SdkErrorCode.ClientHttpNotImplemented, 'Error POSTing to endpoint: ', {
+        status: 401,
+      }),
+      'linear',
+      false
+    );
+
+    expect((error as Error & { code?: ErrorCode }).code).toBe(ErrorCode.AUTH_ERROR);
+    expect(error.message).toContain('mcp-cli auth login linear');
   });
 
   test('preserves static authorization errors', () => {
