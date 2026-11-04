@@ -36,6 +36,73 @@ export interface DaemonResponse {
   error?: { code: string; message: string };
 }
 
+// ============================================================================
+// Socket Framing
+// ============================================================================
+
+// Messages are newline-delimited JSON; JSON.stringify never emits a raw newline.
+
+interface MessageSocket {
+  write(data: Uint8Array): number;
+}
+
+const inbound = new WeakMap<object, Buffer[]>();
+const outbound = new WeakMap<object, Buffer>();
+
+/**
+ * Buffer a received chunk and return every message it completes
+ */
+export function readMessages(socket: object, chunk: Buffer): string[] {
+  const messages: string[] = [];
+  let parts = inbound.get(socket) ?? [];
+  let rest = chunk;
+  let newline = rest.indexOf(0x0a);
+
+  while (newline !== -1) {
+    messages.push(Buffer.concat([...parts, rest.subarray(0, newline)]).toString());
+    parts = [];
+    rest = rest.subarray(newline + 1);
+    newline = rest.indexOf(0x0a);
+  }
+
+  if (rest.length > 0) parts.push(rest);
+  inbound.set(socket, parts);
+
+  return messages;
+}
+
+/**
+ * Send a message, queueing whatever the socket can't accept until its next drain
+ */
+export function writeMessage(socket: MessageSocket, message: DaemonRequest | DaemonResponse): void {
+  const data = Buffer.from(`${JSON.stringify(message)}\n`);
+  const queued = outbound.get(socket);
+
+  if (queued) {
+    outbound.set(socket, Buffer.concat([queued, data]));
+    return;
+  }
+
+  outbound.set(socket, data);
+  flushMessages(socket);
+}
+
+/**
+ * Continue queued writes; call from the socket's drain handler
+ */
+export function flushMessages(socket: MessageSocket): void {
+  const pending = outbound.get(socket);
+  if (!pending) return;
+
+  const written = socket.write(pending);
+  if (written < 0 || written === pending.length) {
+    outbound.delete(socket);
+    return;
+  }
+
+  outbound.set(socket, pending.subarray(written));
+}
+
 interface PidFileContent {
   pid: number;
   configHash: string;
@@ -242,12 +309,12 @@ export async function runDaemon(
   }
 
   // Handle incoming request
-  const handleRequest = async (data: Buffer): Promise<DaemonResponse> => {
+  const handleRequest = async (message: string): Promise<DaemonResponse> => {
     resetIdleTimer();
 
     let request: DaemonRequest;
     try {
-      request = JSON.parse(data.toString());
+      request = JSON.parse(message);
     } catch {
       return {
         id: 'unknown',
@@ -334,8 +401,12 @@ export async function runDaemon(
           debug(`[daemon:${serverName}] Client connected`);
         },
         async data(socket, data) {
-          const response = await handleRequest(data);
-          socket.write(`${JSON.stringify(response)}\n`);
+          for (const message of readMessages(socket, data)) {
+            writeMessage(socket, await handleRequest(message));
+          }
+        },
+        drain(socket) {
+          flushMessages(socket);
         },
         close(socket) {
           activeConnections.delete(socket);
