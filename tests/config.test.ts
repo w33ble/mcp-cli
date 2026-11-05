@@ -225,6 +225,31 @@ describe('config', () => {
       const config = await loadConfig(configPath);
       expect(() => getServerConfig(config, 'unknown')).toThrow('not found');
     });
+
+    test('throws a disabled error for servers with enabled: false', async () => {
+      const configPath = join(tempDir, 'config.json');
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          mcpServers: { off: { url: 'https://example.com', enabled: false } },
+        })
+      );
+
+      const config = await loadConfig(configPath);
+      expect(() => getServerConfig(config, 'off')).toThrow('SERVER_DISABLED');
+    });
+
+    test('rejects non-boolean enabled values', async () => {
+      const configPath = join(tempDir, 'config.json');
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          mcpServers: { off: { command: 'cmd', enabled: 'false' } },
+        })
+      );
+
+      await expect(loadConfig(configPath)).rejects.toThrow('invalid "enabled" value');
+    });
   });
 
   describe('listServerNames', () => {
@@ -247,6 +272,23 @@ describe('config', () => {
       expect(names).toContain('beta');
       expect(names).toContain('gamma');
       expect(names.length).toBe(3);
+    });
+
+    test('omits servers with enabled: false', async () => {
+      const configPath = join(tempDir, 'config.json');
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          mcpServers: {
+            alpha: { command: 'a', enabled: true },
+            beta: { command: 'b', enabled: false },
+            gamma: { url: 'https://example.com' },
+          },
+        })
+      );
+
+      const config = await loadConfig(configPath);
+      expect(listServerNames(config)).toEqual(['alpha', 'gamma']);
     });
   });
 

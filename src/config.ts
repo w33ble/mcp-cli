@@ -14,6 +14,7 @@ import {
   configNotFoundError,
   configSearchError,
   formatCliError,
+  serverDisabledError,
   serverNotFoundError,
 } from './errors.js';
 
@@ -27,6 +28,8 @@ import {
  * - Patterns support glob syntax (e.g., "read_*", "*file*")
  */
 export interface BaseServerConfig {
+  /** Set to false to hide the server from all commands (default: true) */
+  enabled?: boolean;
   /** Glob patterns for tools to allow (if empty/undefined, all tools are allowed) */
   allowedTools?: string[];
   /** Glob patterns for tools to exclude (takes precedence over allowedTools) */
@@ -539,6 +542,18 @@ export async function loadConfig(explicitPath?: string): Promise<McpServersConfi
         })
       );
     }
+
+    if ('enabled' in serverConfig && typeof serverConfig.enabled !== 'boolean') {
+      throw new Error(
+        formatCliError({
+          code: ErrorCode.CLIENT_ERROR,
+          type: 'CONFIG_INVALID_SERVER',
+          message: `Server "${serverName}" has an invalid "enabled" value`,
+          details: `"enabled" must be true or false, got ${JSON.stringify(serverConfig.enabled)}`,
+          suggestion: `Use "enabled": false to disable the server, or remove the field`,
+        })
+      );
+    }
   }
 
   // Substitute environment variables
@@ -554,15 +569,21 @@ export async function loadConfig(explicitPath?: string): Promise<McpServersConfi
 export function getServerConfig(config: McpServersConfig, serverName: string): ServerConfig {
   const server = config.mcpServers[serverName];
   if (!server) {
-    const available = Object.keys(config.mcpServers);
-    throw new Error(formatCliError(serverNotFoundError(serverName, available)));
+    throw new Error(formatCliError(serverNotFoundError(serverName, listServerNames(config))));
   }
+
+  if (server.enabled === false) {
+    throw new Error(formatCliError(serverDisabledError(serverName)));
+  }
+
   return server;
 }
 
 /**
- * List all server names
+ * List enabled server names
  */
 export function listServerNames(config: McpServersConfig): string[] {
-  return Object.keys(config.mcpServers);
+  return Object.entries(config.mcpServers)
+    .filter(([, server]) => server.enabled !== false)
+    .map(([name]) => name);
 }

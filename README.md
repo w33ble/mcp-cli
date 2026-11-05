@@ -233,6 +233,10 @@ mcp-cli -c ~/.config/mcp/mcp_servers.json auth login notion
 Credentials use the operating system secure store when available, with a
 permission-restricted file fallback under `~/.config/mcp/oauth/`.
 
+When a server needs authentication, `mcp-cli` and `mcp-cli grep` still list
+tools from every other server and show an `auth required` hint for the
+unauthenticated one. `call` and `info` exit with code 4.
+
 #### Complex Commands
 
 For JSON arguments containing single quotes, special characters, or long text, use **stdin** to avoid shell escaping issues:
@@ -370,6 +374,25 @@ Restrict which tools are available from a server using `allowedTools` and `disab
 "allowedTools": ["*file*"],
 "disabledTools": ["delete_file"]
 ```
+
+### Disabling Servers
+
+Set `"enabled": false` to hide a server from every command without deleting its
+config. Useful for OAuth servers you don't want to keep logged in to:
+
+```json
+{
+  "mcpServers": {
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": false
+    }
+  }
+}
+```
+
+Disabled servers are skipped by `mcp-cli` and `grep`; `info`, `call`, and `auth`
+fail with `SERVER_DISABLED`. Omit the field or set it to `true` to re-enable.
 
 ### Config Resolution
 
