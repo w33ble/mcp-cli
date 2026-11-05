@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Disable a server with `"enabled": false`** - A disabled server stays in the config but is never listed or connected to by `mcp-cli` and `grep`, so an OAuth server you rarely use doesn't need a current login. `info`, `call`, and `auth` on it fail with `SERVER_DISABLED`. Omitting the field means enabled; a value that isn't `true` or `false` is rejected when the config loads
+
+### Changed
+
+- **One server needing a login no longer fails the whole list** - `mcp-cli` and `grep` used to exit 4 as soon as any server needed `auth login`. The other servers now list normally, the affected server shows `<auth required: run 'mcp-cli auth login <server>'>`, and the exit code is 0. `grep` prints the login command for each such server. `call` and `info` on that server still exit 4
+- **Migrated to `@modelcontextprotocol/client` v2** - Replaces the combined client/server `@modelcontextprotocol/sdk` 1.32.2 with the client-only v2 package (2.4.0), which cuts the lockfile from 161 packages to 79. The wire protocol is unchanged. Error details from HTTP servers no longer start with `Streamable HTTP error: `
+
+### Fixed
+
+- **OAuth login callback page loads** - The loopback callback server shut down before sending its response, so the browser showed a connection error instead of "Authentication complete" even when login succeeded
+- **401s with an empty or unrecognized body are reported as `AUTH_ERROR`** - A server that rejected a request with a 401 and an empty body, or a message like `Bearer token required`, was reported as a generic connection error with no `auth login` hint
+
 ## [0.5.2] - 2026-11-04
 
 ### Fixed
