@@ -2,11 +2,9 @@
  * MCP Client - Connection management for MCP servers
  */
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import type { FetchLike } from '@modelcontextprotocol/sdk/shared/transport.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import type { FetchLike, Tool } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
 import {
   type HttpServerConfig,
@@ -412,7 +410,6 @@ export async function callTool(
         name: toolName,
         arguments: args,
       },
-      undefined,
       { timeout: getTimeoutMs() }
     );
     return result;

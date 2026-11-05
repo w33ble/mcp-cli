@@ -3,6 +3,7 @@
 - Repo is a Bun/TypeScript CLI; `src/index.ts` is the entrypoint and `src/commands/*` hold the subcommands.
 - Bun version is pinned in two places: `mise.toml` (`[tools] bun`, exact) and `package.json` `engines.bun` (`~x.y.z`). Change both together, along with the Bun prerequisite in `README.md`. CI and release workflows read `engines.bun` via `setup-bun`'s `bun-version-file: package.json`.
 - `src/client.ts` handles server connections and daemon fallback; `src/daemon.ts` is the background socket daemon.
+- MCP SDK is `@modelcontextprotocol/client` (v2); only `src/client.ts` and `src/oauth.ts` import it. Keep the default (legacy) `versionNegotiation`: `'auto'` adds a probe round trip, which the SDK advises against for spawn-per-invocation CLIs.
 - Config search order is: `-c/--config` or `MCP_CONFIG_PATH`, then `./mcp_servers.json`, `~/.mcp_servers.json`, `~/.config/mcp/mcp_servers.json`.
 - `call` reads JSON from stdin when no inline args are given; a literal `-` is treated as “read stdin”.
 - `grep` matches tool names only, not server names or descriptions.

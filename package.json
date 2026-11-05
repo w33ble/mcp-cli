@@ -44,7 +44,7 @@
     "fmt:check": "oxfmt --check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.2"
+    "@modelcontextprotocol/client": "^2.4.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",

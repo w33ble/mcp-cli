@@ -89,6 +89,7 @@ async function parseArgs(argsString?: string): Promise<Record<string, unknown>> 
   try {
     return JSON.parse(jsonString);
   } catch (e) {
+    // oxlint-disable-next-line eslint/preserve-caught-error -- parse message is already in the error details; the cause adds nothing
     throw new Error(formatCliError(invalidJsonArgsError(jsonString, (e as Error).message)));
   }
 }
